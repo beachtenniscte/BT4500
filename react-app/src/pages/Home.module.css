@@ -48,6 +48,42 @@
   color: #f39c12;
 }
 
+/* Admin Button */
+.adminButton {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #774494 0%, #5a3370 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(119, 68, 148, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  text-decoration: none;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.adminButton:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(119, 68, 148, 0.6);
+  background: linear-gradient(135deg, #8a52ab 0%, #6d4088 100%);
+}
+
+.adminButton:active {
+  transform: scale(1.05);
+}
+
+.adminIcon {
+  width: 28px;
+  height: 28px;
+  color: white;
+  transition: color 0.3s ease;
+}
+
 /* Logo Styles */
 .logo {
   margin-bottom: 40px;
@@ -192,6 +228,18 @@
     width: 28px;
     height: 28px;
   }
+
+  .adminButton {
+    width: 50px;
+    height: 50px;
+    top: 15px;
+    right: 15px;
+  }
+
+  .adminIcon {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -219,5 +267,18 @@
   .profileIcon {
     width: 24px;
     height: 24px;
+  }
+
+  .adminButton {
+    width: 45px;
+    height: 45px;
+    top: 10px;
+    right: 10px;
+    border-width: 2px;
+  }
+
+  .adminIcon {
+    width: 20px;
+    height: 20px;
   }
 }

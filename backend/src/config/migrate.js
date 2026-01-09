@@ -21,14 +21,20 @@ async function migrate() {
     pool = await sql.connect(config);
     const dbName = process.env.DB_NAME || 'bt4500';
 
-    // Create database if not exists
+    // Drop database if exists and recreate from scratch
+    console.log(`Dropping database '${dbName}' if exists...`);
     await pool.request().query(`
-      IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '${dbName}')
+      IF EXISTS (SELECT name FROM sys.databases WHERE name = '${dbName}')
       BEGIN
-        CREATE DATABASE [${dbName}]
+        ALTER DATABASE [${dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+        DROP DATABASE [${dbName}];
       END
     `);
-    console.log(`Database '${dbName}' ready`);
+
+    // Create fresh database
+    console.log(`Creating database '${dbName}'...`);
+    await pool.request().query(`CREATE DATABASE [${dbName}]`);
+    console.log(`Database '${dbName}' created fresh`);
 
     // Close and reconnect to the specific database
     await pool.close();
@@ -38,7 +44,6 @@ async function migrate() {
 
     // Users table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='users' AND xtype='U')
       CREATE TABLE users (
         id INT IDENTITY(1,1) PRIMARY KEY,
         uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
@@ -53,7 +58,6 @@ async function migrate() {
 
     // Players table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='players' AND xtype='U')
       CREATE TABLE players (
         id INT IDENTITY(1,1) PRIMARY KEY,
         uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
@@ -78,19 +82,16 @@ async function migrate() {
 
     // Add computed column for full_name
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('players') AND name = 'full_name')
       ALTER TABLE players ADD full_name AS (first_name + ' ' + last_name)
     `);
 
     // Create index on players
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_players_ranking')
       CREATE INDEX idx_players_ranking ON players(ranking)
     `);
 
     // Tournaments table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='tournaments' AND xtype='U')
       CREATE TABLE tournaments (
         id INT IDENTITY(1,1) PRIMARY KEY,
         uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
@@ -111,7 +112,6 @@ async function migrate() {
 
     // Categories table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='categories' AND xtype='U')
       CREATE TABLE categories (
         id INT IDENTITY(1,1) PRIMARY KEY,
         code NVARCHAR(10) NOT NULL UNIQUE,
@@ -125,7 +125,6 @@ async function migrate() {
 
     // Tournament Categories
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='tournament_categories' AND xtype='U')
       CREATE TABLE tournament_categories (
         id INT IDENTITY(1,1) PRIMARY KEY,
         tournament_id INT NOT NULL,
@@ -141,7 +140,6 @@ async function migrate() {
 
     // Teams table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='teams' AND xtype='U')
       CREATE TABLE teams (
         id INT IDENTITY(1,1) PRIMARY KEY,
         uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
@@ -159,7 +157,6 @@ async function migrate() {
 
     // Tournament Registrations
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='tournament_registrations' AND xtype='U')
       CREATE TABLE tournament_registrations (
         id INT IDENTITY(1,1) PRIMARY KEY,
         tournament_id INT NOT NULL,
@@ -180,7 +177,6 @@ async function migrate() {
 
     // Matches table
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='matches' AND xtype='U')
       CREATE TABLE matches (
         id INT IDENTITY(1,1) PRIMARY KEY,
         uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
@@ -219,24 +215,23 @@ async function migrate() {
     `);
     console.log('Table: matches created');
 
-    // Points table
+    // Points table - supports tier (OURO/PRATA/BRONZE) and level (1/2)
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='points_table' AND xtype='U')
       CREATE TABLE points_table (
         id INT IDENTITY(1,1) PRIMARY KEY,
         tier NVARCHAR(10) NOT NULL CHECK (tier IN ('OURO', 'PRATA', 'BRONZE')),
+        level INT NOT NULL DEFAULT 1 CHECK (level IN (1, 2)),
         round_name NVARCHAR(50) NOT NULL,
         round_order INT NOT NULL,
         points INT NOT NULL,
         description NVARCHAR(100) NULL,
-        CONSTRAINT unique_tier_round UNIQUE (tier, round_name)
+        CONSTRAINT unique_tier_level_round UNIQUE (tier, level, round_name)
       )
     `);
     console.log('Table: points_table created');
 
     // Player Rankings History
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='player_rankings' AND xtype='U')
       CREATE TABLE player_rankings (
         id INT IDENTITY(1,1) PRIMARY KEY,
         player_id INT NOT NULL,
@@ -256,7 +251,6 @@ async function migrate() {
 
     // Player Tournament Results
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='player_tournament_results' AND xtype='U')
       CREATE TABLE player_tournament_results (
         id INT IDENTITY(1,1) PRIMARY KEY,
         player_id INT NOT NULL,
@@ -282,16 +276,17 @@ async function migrate() {
 
     // Create indexes
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_tournaments_year')
       CREATE INDEX idx_tournaments_year ON tournaments(year)
     `);
 
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_matches_scheduled')
       CREATE INDEX idx_matches_scheduled ON matches(scheduled_date, scheduled_time)
     `);
 
-    console.log('\nAll tables created successfully!');
+    console.log('\n========================================');
+    console.log('All tables created successfully!');
+    console.log('========================================');
+    console.log('\nNext step: Run "npm run db:seed" to populate initial data');
   } catch (error) {
     console.error('Migration failed:', error);
     throw error;

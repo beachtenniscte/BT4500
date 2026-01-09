@@ -73,8 +73,13 @@ async function start() {
 
   if (!dbConnected) {
     console.error('Failed to connect to database. Please check your configuration.');
-    console.log('Make sure MySQL is running and the .env file is configured correctly.');
-    console.log('Run "npm run db:migrate" to create the database and tables.');
+    console.log('\nTroubleshooting steps:');
+    console.log('1. Make sure SQL Server is running');
+    console.log('2. Enable TCP/IP in SQL Server Configuration Manager');
+    console.log('3. Start SQL Server Browser service (for named instances)');
+    console.log('4. Check .env file: DB_SERVER, DB_INSTANCE, DB_USER, DB_PASSWORD');
+    console.log('5. Ensure SQL Server Authentication is enabled (not just Windows Auth)');
+    console.log('6. Run "npm run db:migrate" to create the database and tables.');
     process.exit(1);
   }
 

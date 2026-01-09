@@ -10,7 +10,7 @@ const { body, validationResult } = require('express-validator');
  * Register a new user
  */
 router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').trim().notEmpty().withMessage('Username is required'),
   body('password').isLength({ min: 6 }),
   body('firstName').optional().trim().notEmpty(),
   body('lastName').optional().trim().notEmpty()
@@ -63,7 +63,7 @@ router.post('/register', [
  * Login user
  */
 router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').trim().notEmpty().withMessage('Username is required'),
   body('password').notEmpty()
 ], async (req, res) => {
   try {

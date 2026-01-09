@@ -358,6 +358,116 @@ const apiService = {
       return null;
     }
   },
+
+  // ==================== ADMIN ENDPOINTS ====================
+
+  /**
+   * Import tournament from CSV file
+   * POST /admin/import-csv
+   */
+  importCSV: async (file, calculatePoints = true) => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('calculatePoints', calculatePoints.toString());
+
+    const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Import failed: ${response.status}`);
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Get admin dashboard stats
+   * GET /admin/stats
+   */
+  getAdminStats: async () => {
+    try {
+      return await fetchAPI('/admin/stats');
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get all users (admin only)
+   * GET /admin/users
+   */
+  getUsers: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const response = await fetchAPI(`/admin/users${query ? `?${query}` : ''}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Update user role
+   * PUT /admin/users/:id/role
+   */
+  updateUserRole: async (userId, role) => {
+    return await fetchAPI(`/admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  /**
+   * Recalculate all rankings
+   * POST /admin/recalculate-rankings
+   */
+  recalculateRankings: async () => {
+    return await fetchAPI('/admin/recalculate-rankings', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Get admin tournaments list
+   * GET /admin/tournaments
+   */
+  getAdminTournaments: async () => {
+    try {
+      const response = await fetchAPI('/admin/tournaments');
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Delete tournament
+   * DELETE /admin/tournaments/:id
+   */
+  deleteTournament: async (tournamentId) => {
+    return await fetchAPI(`/admin/tournaments/${tournamentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Check if current user is admin
+   */
+  isAdmin: async () => {
+    try {
+      const user = await fetchAPI('/auth/me');
+      return user?.user?.role === 'admin';
+    } catch (error) {
+      return false;
+    }
+  },
 };
 
 /**

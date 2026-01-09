@@ -188,16 +188,30 @@ class CSVImportService {
           const roundStr = row['FASE'] || row.FASE || '';
           const roundInfo = Match.parseRound(roundStr);
 
-          // Create match
+          // Create tournament registrations for both teams
+          await this.createTournamentRegistration(tournament.id, category.tournamentCategoryId, team1.id);
+          await this.createTournamentRegistration(tournament.id, category.tournamentCategoryId, team2.id);
+
+          // Create match - use tournament start date as fallback for empty dates
+          let scheduledDate = this.parseDate(row['DATA'] || row.DATA);
+          if (!scheduledDate) {
+            // Fallback to tournament start_date, converting Date object to string if needed
+            const fallbackDate = tournament.start_date;
+            scheduledDate = fallbackDate instanceof Date
+              ? fallbackDate.toISOString().split('T')[0]
+              : fallbackDate;
+          }
+          const scheduledTime = this.parseTime(row['HORA'] || row.HORA) || '09:00:00';
+
           const match = await this.createMatch({
             tournamentId: tournament.id,
             tournamentCategoryId: category.tournamentCategoryId,
             matchNumber: parseInt(row['NUMERO'] || row.NUMERO || 0),
             round: roundStr,
             roundOrder: roundInfo.order,
-            court: row['QUADRA'] || row.QUADRA,
-            scheduledDate: this.parseDate(row['DATA'] || row.DATA),
-            scheduledTime: this.parseTime(row['HORA'] || row.HORA),
+            court: row['QUADRA'] || row.QUADRA || 'TBD',
+            scheduledDate,
+            scheduledTime,
             team1Id: team1.id,
             team2Id: team2.id,
             winnerTeamId,
@@ -258,10 +272,18 @@ class CSVImportService {
 
     if (dateMatch) {
       const monthMap = {
-        'JAN': '01', 'FEV': '02', 'MAR': '03', 'ABR': '04',
-        'MAI': '05', 'JUN': '06', 'JUL': '07', 'AGO': '08',
-        'SET': '09', 'OUT': '10', 'NOV': '11', 'DEZ': '12',
-        'MAIO': '05'
+        'JAN': '01', 'JANEIRO': '01',
+        'FEV': '02', 'FEVEREIRO': '02',
+        'MAR': '03', 'MARCO': '03', 'MARÇO': '03',
+        'ABR': '04', 'ABRIL': '04',
+        'MAI': '05', 'MAIO': '05',
+        'JUN': '06', 'JUNHO': '06',
+        'JUL': '07', 'JULHO': '07',
+        'AGO': '08', 'AGOSTO': '08',
+        'SET': '09', 'SETEMBRO': '09',
+        'OUT': '10', 'OUTUBRO': '10',
+        'NOV': '11', 'NOVEMBRO': '11',
+        'DEZ': '12', 'DEZEMBRO': '12'
       };
       const month = monthMap[dateMatch[3].toUpperCase()] || '01';
       startDate = `${year}-${month}-${dateMatch[1].padStart(2, '0')}`;
@@ -451,6 +473,31 @@ class CSVImportService {
 
     teamCache.set(cacheKey, team);
     return team;
+  }
+
+  /**
+   * Create tournament registration for a team
+   */
+  static async createTournamentRegistration(tournamentId, tournamentCategoryId, teamId) {
+    // Check if registration already exists
+    const [existing] = await pool.query(
+      `SELECT id FROM tournament_registrations WHERE tournament_id = ? AND team_id = ?`,
+      [tournamentId, teamId]
+    );
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    // Create new registration
+    const [result] = await pool.query(
+      `INSERT INTO tournament_registrations (tournament_id, tournament_category_id, team_id, status)
+       OUTPUT INSERTED.id
+       VALUES (?, ?, ?, 'registered')`,
+      [tournamentId, tournamentCategoryId, teamId]
+    );
+
+    return { id: result[0]?.id, tournamentId, tournamentCategoryId, teamId };
   }
 
   /**

@@ -2,9 +2,9 @@ const sql = require('mssql');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+// Build config - same as database.js
 const config = {
   server: process.env.DB_SERVER || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 1433,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'bt4500',
@@ -12,15 +12,25 @@ const config = {
     encrypt: false,
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
     enableArithAbort: true
-  }
+  },
+  connectionTimeout: 30000,
+  requestTimeout: 30000
 };
+
+// If a specific port is provided, use it directly
+if (process.env.DB_PORT) {
+  config.port = parseInt(process.env.DB_PORT);
+} else if (process.env.DB_INSTANCE) {
+  config.options.instanceName = process.env.DB_INSTANCE;
+}
 
 async function seed() {
   let pool;
 
   try {
+    console.log('Connecting to database...');
     pool = await sql.connect(config);
-    console.log('Starting seed process...\n');
+    console.log('Connected! Starting seed process...\n');
 
     // 1. Seed Categories
     const categories = [
@@ -33,7 +43,6 @@ async function seed() {
     ];
 
     for (const cat of categories) {
-      // Check if exists first (MS SQL doesn't have INSERT IGNORE)
       const existing = await pool.request()
         .input('code', sql.NVarChar, cat.code)
         .query('SELECT id FROM categories WHERE code = @code');
@@ -51,11 +60,18 @@ async function seed() {
     console.log('Categories seeded');
 
     // 2. Seed Points Table
+    // Points depend on: Tier (OURO/PRATA/BRONZE) and Level (1/2)
+    // Level 1 gets more points than Level 2
     const pointsTiers = ['OURO', 'PRATA', 'BRONZE'];
-    const pointsMultiplier = { 'OURO': 1.5, 'PRATA': 1.0, 'BRONZE': 0.75 };
+    const levels = [1, 2];
+
+    // Tier multipliers
+    const tierMultiplier = { 'OURO': 1.5, 'PRATA': 1.0, 'BRONZE': 0.75 };
+    // Level multipliers (Level 1 = 100%, Level 2 = 70%)
+    const levelMultiplier = { 1: 1.0, 2: 0.7 };
 
     const basePoints = [
-      { round: 'Campeao', order: 7, points: 400 },
+      { round: 'Campeão', order: 7, points: 400 },
       { round: 'Final', order: 6, points: 280 },
       { round: 'Semifinal', order: 5, points: 180 },
       { round: 'Quartas de Final', order: 4, points: 100 },
@@ -64,49 +80,61 @@ async function seed() {
       { round: 'Fase de grupos', order: 1, points: 10 }
     ];
 
+    // Clear existing points to reseed with new structure
+    await pool.request().query('DELETE FROM points_table');
+
     for (const tier of pointsTiers) {
-      for (const bp of basePoints) {
-        const points = Math.round(bp.points * pointsMultiplier[tier]);
+      for (const level of levels) {
+        for (const bp of basePoints) {
+          const points = Math.round(bp.points * tierMultiplier[tier] * levelMultiplier[level]);
 
-        // Check if exists
-        const existing = await pool.request()
-          .input('tier', sql.NVarChar, tier)
-          .input('round_name', sql.NVarChar, bp.round)
-          .query('SELECT id FROM points_table WHERE tier = @tier AND round_name = @round_name');
-
-        if (existing.recordset.length === 0) {
           await pool.request()
             .input('tier', sql.NVarChar, tier)
+            .input('level', sql.Int, level)
             .input('round_name', sql.NVarChar, bp.round)
             .input('round_order', sql.Int, bp.order)
             .input('points', sql.Int, points)
-            .input('description', sql.NVarChar, `${tier} - ${bp.round}`)
-            .query('INSERT INTO points_table (tier, round_name, round_order, points, description) VALUES (@tier, @round_name, @round_order, @points, @description)');
+            .input('description', sql.NVarChar, `${tier} Nivel ${level} - ${bp.round}`)
+            .query('INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES (@tier, @level, @round_name, @round_order, @points, @description)');
         }
       }
     }
-    console.log('Points table seeded');
+    console.log('Points table seeded (with tier + level combinations)');
 
-    // 3. Create admin user
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    // 3. Create users
+    const users = [
+      { username: 'admin', password: 'admin123', role: 'admin' },
+      { username: 'player', password: 'player123', role: 'player' }
+    ];
 
-    // Check if admin exists
-    const existingAdmin = await pool.request()
-      .input('email', sql.NVarChar, 'admin@bt4500.pt')
-      .query('SELECT id FROM users WHERE email = @email');
+    for (const user of users) {
+      const passwordHash = await bcrypt.hash(user.password, 10);
 
-    if (existingAdmin.recordset.length === 0) {
-      await pool.request()
-        .input('email', sql.NVarChar, 'admin@bt4500.pt')
-        .input('password_hash', sql.NVarChar, adminPassword)
-        .input('role', sql.NVarChar, 'admin')
-        .query('INSERT INTO users (email, password_hash, role) VALUES (@email, @password_hash, @role)');
-      console.log('Admin user created (admin@bt4500.pt / admin123)');
-    } else {
-      console.log('Admin user already exists');
+      // Check if user exists
+      const existing = await pool.request()
+        .input('email', sql.NVarChar, user.username)
+        .query('SELECT id FROM users WHERE email = @email');
+
+      if (existing.recordset.length === 0) {
+        await pool.request()
+          .input('email', sql.NVarChar, user.username)
+          .input('password_hash', sql.NVarChar, passwordHash)
+          .input('role', sql.NVarChar, user.role)
+          .query('INSERT INTO users (email, password_hash, role) VALUES (@email, @password_hash, @role)');
+        console.log(`User created: ${user.username} / ${user.password} (${user.role})`);
+      } else {
+        console.log(`User already exists: ${user.username}`);
+      }
     }
 
-    console.log('\nSeed completed successfully!');
+    console.log('\n========================================');
+    console.log('Seed completed successfully!');
+    console.log('========================================');
+    console.log('\nTest Users:');
+    console.log('  Admin:  admin / admin123');
+    console.log('  Player: player / player123');
+    console.log('========================================\n');
+
   } catch (error) {
     console.error('Seed failed:', error);
     throw error;

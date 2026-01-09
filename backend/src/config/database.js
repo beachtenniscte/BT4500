@@ -1,9 +1,9 @@
 const sql = require('mssql');
 require('dotenv').config();
 
+// Build config - handle instance name properly
 const config = {
   server: process.env.DB_SERVER || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 1433,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'bt4500',
@@ -16,8 +16,27 @@ const config = {
     max: 10,
     min: 0,
     idleTimeoutMillis: 30000
-  }
+  },
+  connectionTimeout: 30000,
+  requestTimeout: 30000
 };
+
+// If a specific port is provided, use it directly (bypasses SQL Server Browser)
+if (process.env.DB_PORT) {
+  config.port = parseInt(process.env.DB_PORT);
+} else if (process.env.DB_INSTANCE) {
+  // Only use instance name if no port specified (requires SQL Server Browser)
+  config.options.instanceName = process.env.DB_INSTANCE;
+}
+
+// Debug: log config (without password)
+console.log('DB Config:', {
+  server: config.server,
+  database: config.database,
+  user: config.user,
+  instanceName: config.options.instanceName,
+  port: config.port
+});
 
 // Global pool
 let pool = null;
