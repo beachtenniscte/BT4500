@@ -1,0 +1,21 @@
+{
+  "name": "liga-bt4500",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Liga BT4500 - Clube Ténis Espinho React Application",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.12.0"
+  }
+}

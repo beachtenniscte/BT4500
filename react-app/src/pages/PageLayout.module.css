@@ -1,0 +1,204 @@
+.container {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Inner Pages Styles */
+.innerPage {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px);
+}
+
+.backButton {
+  background: linear-gradient(to bottom, #f5f5f5 0%, #e0e0e0 100%);
+  border: none;
+  border-bottom: 3px solid #f39c12;
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  margin-bottom: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.backButton:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pageTitle {
+  color: white;
+  font-size: clamp(32px, 6vw, 42px);
+  font-weight: bold;
+  font-style: italic;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.contentBox {
+  background: rgba(255, 255, 255, 0.95);
+  padding: clamp(20px, 4vw, 30px);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  margin-bottom: 30px;
+}
+
+.contentBox p {
+  color: #333;
+  font-size: clamp(14px, 2vw, 16px);
+  line-height: 1.8;
+  margin-bottom: 15px;
+}
+
+.contentBox p:last-child {
+  margin-bottom: 0;
+}
+
+/* Provas Schedule */
+.provasList {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(15px, 3vw, 20px);
+}
+
+.provaButton {
+  background: linear-gradient(to bottom, #f5f5f5 0%, #e0e0e0 100%);
+  border: none;
+  border-bottom: 5px solid #f39c12;
+  padding: clamp(15px, 3vw, 18px) clamp(25px, 5vw, 30px);
+  font-size: clamp(18px, 3.5vw, 22px);
+  font-weight: bold;
+  font-style: italic;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.provaButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%);
+}
+
+.regulamentoButton {
+  background: linear-gradient(to bottom, #f39c12 0%, #e67e22 100%);
+  border: none;
+  border-bottom: 5px solid #d35400;
+  padding: clamp(15px, 3vw, 18px) clamp(25px, 5vw, 30px);
+  font-size: clamp(18px, 3vw, 20px);
+  font-weight: bold;
+  font-style: italic;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 10px;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+}
+
+.regulamentoButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(to bottom, #f5a623 0%, #f39c12 100%);
+}
+
+/* Classificação Table */
+.classificationTable {
+  background: rgba(255, 255, 255, 0.95);
+  padding: clamp(15px, 3vw, 20px);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  overflow-x: auto;
+}
+
+.classificationTable table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+}
+
+.classificationTable table th {
+  background: linear-gradient(to bottom, #5eb5a6 0%, #5a8aa8 100%);
+  color: white;
+  padding: clamp(12px, 2vw, 15px);
+  font-weight: bold;
+  text-align: left;
+  border-bottom: 3px solid #f39c12;
+  font-size: clamp(14px, 2vw, 16px);
+}
+
+.classificationTable table td {
+  padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 15px);
+  border-bottom: 1px solid #ddd;
+  color: #333;
+  font-size: clamp(13px, 2vw, 15px);
+}
+
+.classificationTable table tr:hover {
+  background: rgba(243, 156, 18, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .innerPage {
+    padding: 15px;
+  }
+
+  .pageTitle {
+    margin-bottom: 20px;
+  }
+
+  .contentBox {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+
+  .innerPage {
+    padding: 10px;
+  }
+
+  .backButton {
+    padding: 8px 16px;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .pageTitle {
+    margin-bottom: 15px;
+  }
+
+  .contentBox {
+    padding: 15px;
+  }
+
+  .classificationTable {
+    padding: 10px;
+  }
+
+  .classificationTable table {
+    font-size: 14px;
+  }
+}
