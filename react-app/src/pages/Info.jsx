@@ -5,12 +5,11 @@ import styles from './PageLayout.module.css';
 
 function Info() {
   const [content, setContent] = useState({
-    paragraph1: 'É com este objectivo em mente que nasce a Liga BT4500, uma prova piloto realizada com o apoio da Federação Portuguesa de Ténis que pretende marcar um passo importante na evolução do Ténis de Praia em Portugal.',
-    paragraph2: 'Acreditamos que a colaboração da comunidade é fundamental para o sucesso desta nova etapa, pelo que convidamos todos os entusiastas, atletas e interessados a participar ativamente, oferecendo sugestões e ideias para aperfeiçoar o formato e as regras da competição.'
+    paragraph1: 'E com este objectivo em mente que nasce a Liga BT4500, uma prova piloto realizada com o apoio da Federacao Portuguesa de Tenis que pretende marcar um passo importante na evolucao do Tenis de Praia em Portugal.',
+    paragraph2: 'Acreditamos que a colaboracao da comunidade e fundamental para o sucesso desta nova etapa, pelo que convidamos todos os entusiastas, atletas e interessados a participar ativamente, oferecendo sugestoes e ideias para aperfeicoar o formato e as regras da competicao.'
   });
 
   useEffect(() => {
-    // Fetch info data from API when available
     apiService.getInfo()
       .then(data => {
         if (data) setContent(data);

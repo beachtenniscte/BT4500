@@ -1,22 +1,51 @@
 // API Service Layer
 // Configure your API base URL here
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Get auth token from localStorage
+ */
+function getAuthToken() {
+  return localStorage.getItem('bt4500_token');
+}
+
+/**
+ * Set auth token in localStorage
+ */
+function setAuthToken(token) {
+  localStorage.setItem('bt4500_token', token);
+}
+
+/**
+ * Remove auth token from localStorage
+ */
+function removeAuthToken() {
+  localStorage.removeItem('bt4500_token');
+}
 
 /**
  * Generic fetch wrapper with error handling
  */
 async function fetchAPI(endpoint, options = {}) {
   try {
+    const token = getAuthToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
     }
 
     return await response.json();
@@ -30,126 +59,321 @@ async function fetchAPI(endpoint, options = {}) {
  * API Service Object
  */
 const apiService = {
+  // Auth token management
+  setToken: setAuthToken,
+  removeToken: removeAuthToken,
+  getToken: getAuthToken,
+
   /**
-   * Get info page content
-   * GET /info
+   * Login user
+   * POST /auth/login
    */
-  getInfo: async () => {
+  login: async (email, password) => {
+    const response = await fetchAPI('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    if (response.token) {
+      setAuthToken(response.token);
+    }
+    return response;
+  },
+
+  /**
+   * Register user
+   * POST /auth/register
+   */
+  register: async (userData) => {
+    const response = await fetchAPI('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    if (response.token) {
+      setAuthToken(response.token);
+    }
+    return response;
+  },
+
+  /**
+   * Logout user
+   */
+  logout: () => {
+    removeAuthToken();
+  },
+
+  /**
+   * Get current user
+   * GET /auth/me
+   */
+  getCurrentUser: async () => {
     try {
-      return await fetchAPI('/info');
+      return await fetchAPI('/auth/me');
     } catch (error) {
-      // Return null on error - component will use default data
       return null;
     }
   },
 
   /**
-   * Get list of provas (events)
-   * GET /provas
+   * Get info page content (static for now)
+   */
+  getInfo: async () => {
+    // Return static content - can be extended to fetch from API
+    return null;
+  },
+
+  /**
+   * Get list of tournaments
+   * GET /tournaments
+   */
+  getTournaments: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const response = await fetchAPI(`/tournaments${query ? `?${query}` : ''}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get list of provas (tournaments formatted for UI)
+   * GET /tournaments
    */
   getProvas: async () => {
     try {
-      return await fetchAPI('/provas');
+      const response = await fetchAPI('/tournaments?year=2025&orderBy=start_date&order=ASC');
+      // Transform tournament data to prova format
+      if (response.data) {
+        return response.data.map(t => ({
+          id: t.id,
+          type: t.tier,
+          dates: formatTournamentDates(t.start_date, t.end_date),
+          status: t.status === 'completed' ? 'completed' : 'upcoming',
+          name: t.name,
+          uuid: t.uuid
+        }));
+      }
+      return null;
     } catch (error) {
       return null;
     }
   },
 
   /**
-   * Get specific prova by ID
-   * GET /provas/:id
+   * Get specific tournament by UUID
+   * GET /tournaments/:uuid
    */
-  getProvaById: async (id) => {
+  getTournament: async (uuid) => {
     try {
-      return await fetchAPI(`/provas/${id}`);
+      return await fetchAPI(`/tournaments/${uuid}`);
     } catch (error) {
       return null;
     }
   },
 
   /**
-   * Get classification/standings
-   * GET /classification
+   * Get tournament matches
+   * GET /tournaments/:uuid/matches
+   */
+  getTournamentMatches: async (uuid, category = null) => {
+    try {
+      const query = category ? `?category=${category}` : '';
+      const response = await fetchAPI(`/tournaments/${uuid}/matches${query}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get tournament standings
+   * GET /tournaments/:uuid/standings
+   */
+  getTournamentStandings: async (uuid, category = null) => {
+    try {
+      const query = category ? `?category=${category}` : '';
+      const response = await fetchAPI(`/tournaments/${uuid}/standings${query}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get player rankings
+   * GET /players/rankings
+   */
+  getRankings: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const response = await fetchAPI(`/players/rankings${query ? `?${query}` : ''}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get classification/standings (rankings)
+   * GET /players/rankings
    */
   getClassification: async () => {
     try {
-      return await fetchAPI('/classification');
+      const response = await fetchAPI('/players/rankings?limit=20');
+      // Transform to classification format
+      if (response.data) {
+        return response.data.map(p => ({
+          position: p.rankPosition,
+          team: p.full_name,
+          points: p.total_points,
+          games: 0, // Would need match count
+          wins: 0   // Would need win count
+        }));
+      }
+      return null;
     } catch (error) {
       return null;
     }
   },
 
   /**
-   * Create a new prova (admin function)
-   * POST /provas
+   * Get players list
+   * GET /players
    */
-  createProva: async (provaData) => {
+  getPlayers: async (params = {}) => {
     try {
-      return await fetchAPI('/provas', {
-        method: 'POST',
-        body: JSON.stringify(provaData),
-      });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Update classification data (admin function)
-   * PUT /classification/:id
-   */
-  updateClassification: async (id, teamData) => {
-    try {
-      return await fetchAPI(`/classification/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(teamData),
-      });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Delete a prova (admin function)
-   * DELETE /provas/:id
-   */
-  deleteProva: async (id) => {
-    try {
-      return await fetchAPI(`/provas/${id}`, {
-        method: 'DELETE',
-      });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Get user profile
-   * GET /profile/:id
-   */
-  getProfile: async (id) => {
-    try {
-      const endpoint = id ? `/profile/${id}` : '/profile';
-      return await fetchAPI(endpoint);
+      const query = new URLSearchParams(params).toString();
+      const response = await fetchAPI(`/players${query ? `?${query}` : ''}`);
+      return response.data;
     } catch (error) {
       return null;
     }
   },
 
   /**
-   * Update user profile
-   * PUT /profile/:id
+   * Get player by UUID
+   * GET /players/:uuid
    */
-  updateProfile: async (id, profileData) => {
+  getPlayer: async (uuid) => {
     try {
-      return await fetchAPI(`/profile/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(profileData),
-      });
+      return await fetchAPI(`/players/${uuid}`);
     } catch (error) {
-      throw error;
+      return null;
+    }
+  },
+
+  /**
+   * Get player stats
+   * GET /players/:uuid/stats
+   */
+  getPlayerStats: async (uuid) => {
+    try {
+      return await fetchAPI(`/players/${uuid}/stats`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get player tournament history
+   * GET /players/:uuid/tournaments
+   */
+  getPlayerTournaments: async (uuid, limit = 10) => {
+    try {
+      const response = await fetchAPI(`/players/${uuid}/tournaments?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get user profile (player profile for logged in user)
+   * GET /auth/me + /players/:uuid
+   */
+  getProfile: async (uuid) => {
+    try {
+      if (uuid) {
+        return await fetchAPI(`/players/${uuid}`);
+      }
+      // Get current user's player profile
+      const user = await fetchAPI('/auth/me');
+      if (user.player) {
+        return await fetchAPI(`/players/${user.player.id}`);
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Update player profile
+   * PUT /players/:uuid
+   */
+  updateProfile: async (uuid, profileData) => {
+    return await fetchAPI(`/players/${uuid}`, {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  },
+
+  /**
+   * Get points table
+   * GET /points
+   */
+  getPointsTable: async (tier = null) => {
+    try {
+      const query = tier ? `?tier=${tier}` : '';
+      const response = await fetchAPI(`/points${query}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get matches
+   * GET /matches
+   */
+  getMatches: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const response = await fetchAPI(`/matches${query ? `?${query}` : ''}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get live matches (today)
+   * GET /matches/status/live
+   */
+  getLiveMatches: async () => {
+    try {
+      const response = await fetchAPI('/matches/status/live');
+      return response.data;
+    } catch (error) {
+      return null;
     }
   },
 };
+
+/**
+ * Helper function to format tournament dates
+ */
+function formatTournamentDates(startDate, endDate) {
+  const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+  const month = months[start.getMonth()];
+
+  return `${startDay}-${endDay} ${month}`;
+}
 
 export default apiService;

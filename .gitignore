@@ -62,3 +62,6 @@ backend/temp/
 # Package lock files (optional - uncomment if you want to ignore)
 # package-lock.json
 # yarn.lock
+
+# Old/backup files
+OLD/

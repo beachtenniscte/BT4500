@@ -13,7 +13,6 @@ function Classificacao() {
   ]);
 
   useEffect(() => {
-    // Fetch classification data from API when available
     apiService.getClassification()
       .then(data => {
         if (data && data.length > 0) setTeams(data);
@@ -21,38 +20,70 @@ function Classificacao() {
       .catch(err => console.error('Error fetching classification:', err));
   }, []);
 
+  const getPositionBadgeClass = (position) => {
+    switch (position) {
+      case 1:
+        return styles.first;
+      case 2:
+        return styles.second;
+      case 3:
+        return styles.third;
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className={styles.container}>
+      <Link to="/profile" className={styles.profileButton}>
+        <svg viewBox="0 0 24 24" className={styles.profileIcon}>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+          <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+          <path d="M6.5 18.5C7.5 16.5 9.5 15 12 15C14.5 15 16.5 16.5 17.5 18.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        </svg>
+      </Link>
+
       <div className={styles.innerPage}>
         <Link to="/" className={styles.backButton}>
           <span>&lt;&lt;</span>
         </Link>
 
-        <h1 className={styles.pageTitle}>CLASSIFICAÇÃO</h1>
+        <h1 className={styles.pageTitle}>CLASSIFICACAO</h1>
 
         <div className={styles.classificationTable}>
-          <table>
-            <thead>
-              <tr>
-                <th>Posição</th>
-                <th>Equipa</th>
-                <th>Pontos</th>
-                <th>Jogos</th>
-                <th>Vitórias</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map((team) => (
-                <tr key={team.position}>
-                  <td>{team.position}</td>
-                  <td>{team.team}</td>
-                  <td>{team.points}</td>
-                  <td>{team.games}</td>
-                  <td>{team.wins}</td>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>Ranking Geral</h2>
+          </div>
+          <div className={styles.tableContent}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Equipa</th>
+                  <th>Pontos</th>
+                  <th>Jogos</th>
+                  <th>Vitorias</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {teams.map((team) => (
+                  <tr key={team.position}>
+                    <td>
+                      <div className={styles.positionCell}>
+                        <span className={`${styles.positionBadge} ${getPositionBadgeClass(team.position)}`}>
+                          {team.position}
+                        </span>
+                      </div>
+                    </td>
+                    <td><strong>{team.team}</strong></td>
+                    <td><strong style={{ color: '#774494' }}>{team.points}</strong></td>
+                    <td>{team.games}</td>
+                    <td>{team.wins}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
