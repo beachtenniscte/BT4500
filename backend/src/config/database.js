@@ -6,7 +6,7 @@ const config = {
   server: process.env.DB_SERVER || 'localhost',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || 'bt4500',
+  database: process.env.DB_NAME || 'BT4500',
   options: {
     encrypt: false,
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',

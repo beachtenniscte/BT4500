@@ -1,17 +1,35 @@
 const sql = require('mssql');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
+// Build config - same approach as database.js
 const config = {
   server: process.env.DB_SERVER || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 1433,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   options: {
     encrypt: false,
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
     enableArithAbort: true
-  }
+  },
+  connectionTimeout: 30000,
+  requestTimeout: 30000
 };
+
+// If a specific port is provided, use it directly (bypasses SQL Server Browser)
+if (process.env.DB_PORT) {
+  config.port = parseInt(process.env.DB_PORT);
+} else if (process.env.DB_INSTANCE) {
+  // Only use instance name if no port specified (requires SQL Server Browser)
+  config.options.instanceName = process.env.DB_INSTANCE;
+}
+
+console.log('Migration DB Config:', {
+  server: config.server,
+  user: config.user,
+  port: config.port,
+  instanceName: config.options.instanceName
+});
 
 async function migrate() {
   let pool;

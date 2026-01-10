@@ -1,0 +1,547 @@
+.container {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Profile Button */
+.profileButton {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  text-decoration: none;
+  border: 3px solid #f39c12;
+}
+
+.profileButton:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+  background: white;
+}
+
+.profileIcon {
+  width: 32px;
+  height: 32px;
+  color: #555;
+  transition: color 0.3s ease;
+}
+
+.profileButton:hover .profileIcon {
+  color: #f39c12;
+}
+
+/* Inner Pages Styles */
+.innerPage {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px);
+}
+
+.backButton {
+  background: linear-gradient(to bottom, #f5f5f5 0%, #e0e0e0 100%);
+  border: none;
+  border-bottom: 3px solid #f39c12;
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  margin-bottom: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.backButton:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pageTitle {
+  color: white;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: bold;
+  font-style: italic;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Category Preview Cards Grid */
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+/* Category Preview Card */
+.categoryCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.categoryCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.categoryCard.male .cardHeader {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.categoryCard.female .cardHeader {
+  background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+}
+
+.categoryCard.mixed .cardHeader {
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+}
+
+.cardHeader {
+  padding: 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.genderIcon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.categoryTitle {
+  font-size: 22px;
+  font-weight: bold;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.expandIcon {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.3s ease;
+}
+
+.categoryCard:hover .expandIcon {
+  transform: translateX(5px);
+}
+
+/* Preview List */
+.previewList {
+  padding: 15px 20px;
+}
+
+.previewItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.previewItem:last-child {
+  border-bottom: none;
+}
+
+.previewRank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.positionBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  color: white;
+  background: linear-gradient(135deg, #774494 0%, #5a3370 100%);
+}
+
+.positionBadge.first {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.positionBadge.second {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.positionBadge.third {
+  background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
+}
+
+.playerName {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.playerPoints {
+  font-weight: bold;
+  color: #774494;
+  font-size: 14px;
+}
+
+.viewAllButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
+  color: #4CA69E;
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 1px solid #eee;
+  transition: all 0.3s ease;
+}
+
+.categoryCard:hover .viewAllButton {
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.2) 0%, rgba(119, 68, 148, 0.2) 100%);
+}
+
+/* Expanded View Modal */
+.expandedView {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.expandedCard {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expandedHeader {
+  padding: 25px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.expandedCard.male .expandedHeader {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.expandedCard.female .expandedHeader {
+  background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+}
+
+.expandedCard.mixed .expandedHeader {
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+}
+
+.expandedTitle {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.expandedTitle h2 {
+  font-size: 26px;
+  font-weight: bold;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.closeButton {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.closeButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Expanded Table Content */
+.expandedContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.rankingTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rankingTable th {
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
+  color: #4CA69E;
+  padding: 15px;
+  font-weight: bold;
+  font-style: italic;
+  text-align: left;
+  border-bottom: 3px solid #f39c12;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+}
+
+.rankingTable td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+  font-size: 15px;
+}
+
+.rankingTable tbody tr {
+  transition: all 0.3s ease;
+}
+
+.rankingTable tbody tr:hover {
+  background: linear-gradient(to right, rgba(76, 166, 158, 0.05) 0%, rgba(119, 68, 148, 0.05) 100%);
+}
+
+.rankingTable .positionCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rankingTable .playerName {
+  font-weight: 600;
+}
+
+.rankingTable .points {
+  font-weight: bold;
+  color: #774494;
+}
+
+/* Loading State */
+.loading {
+  color: white;
+  font-size: 24px;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loadingSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 40px;
+  color: #666;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #eee;
+  border-top-color: #4CA69E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 30px;
+  color: #888;
+}
+
+.emptyIcon {
+  width: 50px;
+  height: 50px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .categoriesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileButton {
+    width: 50px;
+    height: 50px;
+    top: 15px;
+    left: 15px;
+  }
+
+  .profileIcon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .expandedCard {
+    max-height: 95vh;
+    margin: 10px;
+  }
+
+  .expandedHeader {
+    padding: 20px;
+  }
+
+  .expandedTitle h2 {
+    font-size: 20px;
+  }
+
+  .expandedContent {
+    padding: 15px;
+  }
+
+  .rankingTable th,
+  .rankingTable td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+
+  .innerPage {
+    padding: 10px;
+  }
+
+  .backButton {
+    padding: 8px 16px;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .categoryTitle {
+    font-size: 18px;
+  }
+
+  .genderIcon {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+
+  .profileButton {
+    width: 45px;
+    height: 45px;
+    top: 10px;
+    left: 10px;
+    border-width: 2px;
+  }
+
+  .profileIcon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .expandedView {
+    padding: 10px;
+  }
+
+  .expandedCard {
+    border-radius: 8px;
+  }
+
+  .closeButton {
+    width: 35px;
+    height: 35px;
+  }
+}

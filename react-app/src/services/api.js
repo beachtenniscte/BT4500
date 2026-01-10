@@ -216,16 +216,24 @@ const apiService = {
   /**
    * Get classification/standings (rankings)
    * GET /players/rankings
+   * @param {string} gender - Optional gender filter: 'M', 'F', or null for all
+   * @param {number} limit - Number of results to return
    */
-  getClassification: async () => {
+  getClassification: async (gender = null, limit = 20) => {
     try {
-      const response = await fetchAPI('/players/rankings?limit=20');
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (gender) {
+        params.append('gender', gender);
+      }
+      const response = await fetchAPI(`/players/rankings?${params.toString()}`);
       // Transform to classification format
       if (response.data) {
         return response.data.map(p => ({
           position: p.rankPosition,
           team: p.full_name,
           points: p.total_points,
+          gender: p.gender,
+          uuid: p.uuid,
           games: 0, // Would need match count
           wins: 0   // Would need win count
         }));
@@ -372,6 +380,36 @@ const apiService = {
     formData.append('calculatePoints', calculatePoints.toString());
 
     const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Import failed: ${response.status}`);
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Import multiple tournaments from CSV files (processed sequentially)
+   * POST /admin/import-csv-multiple
+   */
+  importCSVMultiple: async (files, calculatePoints = true) => {
+    const token = getAuthToken();
+    const formData = new FormData();
+
+    // Append all files with the same field name 'files'
+    for (const file of files) {
+      formData.append('files', file);
+    }
+    formData.append('calculatePoints', calculatePoints.toString());
+
+    const response = await fetch(`${API_BASE_URL}/admin/import-csv-multiple`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

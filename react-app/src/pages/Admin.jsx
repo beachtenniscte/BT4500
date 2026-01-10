@@ -176,6 +176,7 @@ function Admin() {
                   type="file"
                   id="csvFileInput"
                   accept=".csv"
+                  multiple
                   onChange={handleFileChange}
                   className={styles.fileInput}
                 />
@@ -186,7 +187,11 @@ function Admin() {
                     <line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="2"/>
                     <polyline points="9 15 12 12 15 15" stroke="currentColor" strokeWidth="2" fill="none"/>
                   </svg>
-                  {file ? file.name : 'Select CSV File'}
+                  {files.length === 0
+                    ? 'Select CSV Files (multiple allowed)'
+                    : files.length === 1
+                      ? files[0].name
+                      : `${files.length} files selected`}
                 </label>
               </div>
 
@@ -204,18 +209,28 @@ function Admin() {
 
               <button
                 onClick={handleImport}
-                disabled={!file || importing}
+                disabled={files.length === 0 || importing}
                 className={styles.importButton}
               >
-                {importing ? 'Importing...' : 'Import Tournament'}
+                {importing
+                  ? 'Importing...'
+                  : files.length <= 1
+                    ? 'Import Tournament'
+                    : `Import ${files.length} Tournaments`}
               </button>
             </div>
 
             {/* Import Result */}
             {importResult && (
               <div className={styles.resultCard}>
-                <h4 className={styles.resultTitle}>Import Successful!</h4>
-                {importResult.results && (
+                <h4 className={styles.resultTitle}>
+                  {importResult.results
+                    ? 'Import Successful!'
+                    : importResult.message || 'Import Complete'}
+                </h4>
+
+                {/* Single file result */}
+                {importResult.results && !importResult.totalFiles && (
                   <div className={styles.resultDetails}>
                     <p><strong>Tournament:</strong> {importResult.results.tournament?.name}</p>
                     <p><strong>Categories:</strong> {importResult.results.categories?.length || 0}</p>
@@ -229,7 +244,37 @@ function Admin() {
                     )}
                   </div>
                 )}
-                {importResult.message && <p>{importResult.message}</p>}
+
+                {/* Multiple files result */}
+                {importResult.totalFiles && (
+                  <div className={styles.resultDetails}>
+                    <p className={styles.summaryText}>
+                      <strong>{importResult.successCount}</strong> of <strong>{importResult.totalFiles}</strong> files imported successfully
+                    </p>
+
+                    {importResult.results?.map((fileResult, index) => (
+                      <div key={index} className={fileResult.success ? styles.fileResultSuccess : styles.fileResultError}>
+                        <p className={styles.fileName}>
+                          {fileResult.success ? '✓' : '✗'} {fileResult.filename}
+                        </p>
+                        {fileResult.success && fileResult.data && (
+                          <div className={styles.fileDetails}>
+                            <span>Tournament: {fileResult.data.tournament?.name}</span>
+                            <span>Matches: {fileResult.data.matchesCount}</span>
+                            <span>Players: {fileResult.data.playersCount}</span>
+                          </div>
+                        )}
+                        {!fileResult.success && (
+                          <p className={styles.fileError}>{fileResult.error}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {importResult.message && !importResult.results && !importResult.totalFiles && (
+                  <p>{importResult.message}</p>
+                )}
               </div>
             )}
 

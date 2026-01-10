@@ -249,6 +249,59 @@
   color: #e67e22 !important;
 }
 
+/* Multiple file results */
+.summaryText {
+  font-size: 16px;
+  margin-bottom: 15px !important;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(76, 166, 158, 0.3);
+}
+
+.fileResultSuccess,
+.fileResultError {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.fileResultSuccess {
+  background: rgba(76, 166, 158, 0.1);
+  border-left: 3px solid #4CA69E;
+}
+
+.fileResultError {
+  background: rgba(231, 76, 60, 0.1);
+  border-left: 3px solid #e74c3c;
+}
+
+.fileName {
+  font-weight: bold;
+  margin: 0 0 8px 0 !important;
+  font-size: 14px;
+}
+
+.fileResultSuccess .fileName {
+  color: #4CA69E;
+}
+
+.fileResultError .fileName {
+  color: #e74c3c;
+}
+
+.fileDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 13px;
+  color: #666;
+}
+
+.fileError {
+  font-size: 13px;
+  color: #c0392b;
+  margin: 0 !important;
+}
+
 /* Error Card */
 .errorCard {
   background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(231, 76, 60, 0.05) 100%);
