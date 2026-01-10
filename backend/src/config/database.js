@@ -1,14 +1,20 @@
 const sql = require('mssql');
 require('dotenv').config();
 
-// Build config - handle instance name properly
+// Determine if this is a local or remote connection
+const isLocalServer = (process.env.DB_SERVER || 'localhost').includes('localhost') ||
+                      (process.env.DB_SERVER || '').includes('DESKTOP') ||
+                      (process.env.DB_SERVER || '').includes('127.0.0.1');
+
+// Build config - handle both local and remote servers
 const config = {
   server: process.env.DB_SERVER || 'localhost',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'BT4500',
   options: {
-    encrypt: false,
+    // Remote servers typically need encryption, local servers don't
+    encrypt: process.env.DB_ENCRYPT === 'true' || !isLocalServer,
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
     enableArithAbort: true
   },
@@ -24,18 +30,24 @@ const config = {
 // If a specific port is provided, use it directly (bypasses SQL Server Browser)
 if (process.env.DB_PORT) {
   config.port = parseInt(process.env.DB_PORT);
-} else if (process.env.DB_INSTANCE) {
-  // Only use instance name if no port specified (requires SQL Server Browser)
+}
+
+// Only use instance name for local servers when no port is specified
+if (isLocalServer && process.env.DB_INSTANCE && !process.env.DB_PORT) {
   config.options.instanceName = process.env.DB_INSTANCE;
 }
 
-// Debug: log config (without password)
+// Debug: log config (without password but show password length)
 console.log('DB Config:', {
   server: config.server,
   database: config.database,
   user: config.user,
+  port: config.port,
   instanceName: config.options.instanceName,
-  port: config.port
+  encrypt: config.options.encrypt,
+  isLocal: isLocalServer,
+  passwordLength: config.password ? config.password.length : 0,
+  passwordFirstChar: config.password ? config.password[0] : ''
 });
 
 // Global pool

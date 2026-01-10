@@ -2,13 +2,19 @@ const sql = require('mssql');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-// Build config - same approach as database.js
+// Determine if this is a local or remote connection
+const isLocalServer = (process.env.DB_SERVER || 'localhost').includes('localhost') ||
+                      (process.env.DB_SERVER || '').includes('DESKTOP') ||
+                      (process.env.DB_SERVER || '').includes('127.0.0.1');
+
+// Build config - handle both local and remote servers
 const config = {
   server: process.env.DB_SERVER || 'localhost',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   options: {
-    encrypt: false,
+    // Remote servers typically need encryption, local servers don't
+    encrypt: process.env.DB_ENCRYPT === 'true' || !isLocalServer,
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
     enableArithAbort: true
   },
@@ -19,8 +25,10 @@ const config = {
 // If a specific port is provided, use it directly (bypasses SQL Server Browser)
 if (process.env.DB_PORT) {
   config.port = parseInt(process.env.DB_PORT);
-} else if (process.env.DB_INSTANCE) {
-  // Only use instance name if no port specified (requires SQL Server Browser)
+}
+
+// Only use instance name for local servers when no port is specified
+if (isLocalServer && process.env.DB_INSTANCE && !process.env.DB_PORT) {
   config.options.instanceName = process.env.DB_INSTANCE;
 }
 
@@ -28,7 +36,9 @@ console.log('Migration DB Config:', {
   server: config.server,
   user: config.user,
   port: config.port,
-  instanceName: config.options.instanceName
+  instanceName: config.options.instanceName,
+  encrypt: config.options.encrypt,
+  isLocal: isLocalServer
 });
 
 async function migrate() {

@@ -57,7 +57,11 @@ backend/temp/
 
 # Database backups
 *.bak
+
+# SQL files (except schema.sql and seed.sql which are documentation)
 *.sql
+!**/schema.sql
+!**/seed.sql
 
 # Package lock files (optional - uncomment if you want to ignore)
 # package-lock.json
