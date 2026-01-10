@@ -22,6 +22,38 @@
   border: 3px solid #f39c12;
 }
 
+/* Admin Button (below profile button) */
+.adminButton {
+  position: fixed;
+  top: 90px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #774494 0%, #5a3370 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(119, 68, 148, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  text-decoration: none;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.adminButton:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(119, 68, 148, 0.6);
+  background: linear-gradient(135deg, #8a52ab 0%, #6d4088 100%);
+}
+
+.adminIcon {
+  width: 28px;
+  height: 28px;
+  color: white;
+  transition: color 0.3s ease;
+}
+
 .profileButton:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
@@ -470,6 +502,18 @@
     height: 28px;
   }
 
+  .adminButton {
+    width: 50px;
+    height: 50px;
+    top: 75px;
+    left: 15px;
+  }
+
+  .adminIcon {
+    width: 24px;
+    height: 24px;
+  }
+
   .expandedCard {
     max-height: 95vh;
     margin: 10px;
@@ -530,6 +574,19 @@
   .profileIcon {
     width: 24px;
     height: 24px;
+  }
+
+  .adminButton {
+    width: 45px;
+    height: 45px;
+    top: 65px;
+    left: 10px;
+    border-width: 2px;
+  }
+
+  .adminIcon {
+    width: 20px;
+    height: 20px;
   }
 
   .expandedView {
