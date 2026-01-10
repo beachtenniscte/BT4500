@@ -1,10 +1,32 @@
 const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
 const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'bt4500-dev-secret';
 
+// Auth0 configuration
+const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
+const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE;
+
+// Check if Auth0 is configured
+const isAuth0Enabled = () => !!(AUTH0_DOMAIN && AUTH0_AUDIENCE);
+
+// JWKS client for Auth0 token verification (lazy-loaded)
+let jwksClientInstance = null;
+const getJwksClient = () => {
+  if (!jwksClientInstance && isAuth0Enabled()) {
+    jwksClientInstance = jwksClient({
+      jwksUri: `https://${AUTH0_DOMAIN}/.well-known/jwks.json`,
+      cache: true,
+      rateLimit: true,
+      cacheMaxAge: 600000 // 10 minutes
+    });
+  }
+  return jwksClientInstance;
+};
+
 /**
- * Generate JWT token
+ * Generate JWT token (for local auth)
  */
 function generateToken(user) {
   return jwt.sign(
@@ -15,7 +37,36 @@ function generateToken(user) {
 }
 
 /**
+ * Verify Auth0 token
+ */
+async function verifyAuth0Token(token) {
+  const client = getJwksClient();
+
+  return new Promise((resolve, reject) => {
+    jwt.verify(
+      token,
+      (header, callback) => {
+        client.getSigningKey(header.kid, (err, key) => {
+          if (err) return callback(err);
+          callback(null, key.publicKey || key.rsaPublicKey);
+        });
+      },
+      {
+        audience: AUTH0_AUDIENCE,
+        issuer: `https://${AUTH0_DOMAIN}/`,
+        algorithms: ['RS256']
+      },
+      (err, decoded) => {
+        if (err) return reject(err);
+        resolve(decoded);
+      }
+    );
+  });
+}
+
+/**
  * Verify JWT token middleware
+ * Supports both local JWT and Auth0 tokens
  */
 async function authenticate(req, res, next) {
   try {
@@ -26,22 +77,74 @@ async function authenticate(req, res, next) {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET);
+    let decoded;
+    let isAuth0Token = false;
 
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+    // Try to decode without verification to check the issuer
+    try {
+      const unverified = jwt.decode(token, { complete: true });
+      if (unverified?.payload?.iss?.includes(AUTH0_DOMAIN)) {
+        isAuth0Token = true;
+      }
+    } catch (e) {
+      // Not a valid JWT format
     }
 
-    req.user = user;
-    next();
+    if (isAuth0Token && isAuth0Enabled()) {
+      // Verify Auth0 token
+      try {
+        decoded = await verifyAuth0Token(token);
+
+        // Find or create user from Auth0 token
+        const email = decoded.email || decoded.sub;
+        let user = await User.findByEmail(email);
+
+        if (!user) {
+          // Auto-create user from Auth0
+          user = await User.create({
+            email: email,
+            password: null, // No password for Auth0 users
+            role: 'player',
+            auth0Id: decoded.sub
+          });
+        }
+
+        // Update auth0Id if not set
+        if (!user.auth0_id && decoded.sub) {
+          await User.update(user.id, { auth0Id: decoded.sub });
+        }
+
+        req.user = user;
+        req.auth0Token = decoded;
+        return next();
+      } catch (auth0Error) {
+        console.error('Auth0 token verification failed:', auth0Error.message);
+        return res.status(401).json({ error: 'Invalid Auth0 token' });
+      }
+    } else {
+      // Verify local JWT
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+
+        const user = await User.findById(decoded.id);
+        if (!user) {
+          return res.status(401).json({ error: 'User not found' });
+        }
+
+        req.user = user;
+        return next();
+      } catch (jwtError) {
+        if (jwtError.name === 'TokenExpiredError') {
+          return res.status(401).json({ error: 'Token expired' });
+        }
+        if (jwtError.name === 'JsonWebTokenError') {
+          return res.status(401).json({ error: 'Invalid token' });
+        }
+        throw jwtError;
+      }
+    }
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
-    }
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    console.error('Authentication error:', error);
     return res.status(500).json({ error: 'Authentication error' });
   }
 }
@@ -55,10 +158,32 @@ async function optionalAuth(req, res, next) {
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await User.findById(decoded.id);
-      if (user) {
-        req.user = user;
+
+      // Check if Auth0 token
+      let isAuth0Token = false;
+      try {
+        const unverified = jwt.decode(token, { complete: true });
+        if (unverified?.payload?.iss?.includes(AUTH0_DOMAIN)) {
+          isAuth0Token = true;
+        }
+      } catch (e) {
+        // Not valid JWT
+      }
+
+      if (isAuth0Token && isAuth0Enabled()) {
+        const decoded = await verifyAuth0Token(token);
+        const email = decoded.email || decoded.sub;
+        const user = await User.findByEmail(email);
+        if (user) {
+          req.user = user;
+          req.auth0Token = decoded;
+        }
+      } else {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if (user) {
+          req.user = user;
+        }
       }
     }
     next();
@@ -101,5 +226,6 @@ module.exports = {
   optionalAuth,
   requireRole,
   adminOnly,
-  organizerOrAdmin
+  organizerOrAdmin,
+  isAuth0Enabled
 };

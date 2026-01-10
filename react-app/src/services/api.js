@@ -12,8 +12,9 @@ function getAuthToken() {
 /**
  * Set auth token in localStorage
  */
-function setAuthToken(token) {
+function setAuthToken(token, tokenType = 'local') {
   localStorage.setItem('bt4500_token', token);
+  localStorage.setItem('bt4500_token_type', tokenType);
 }
 
 /**
@@ -21,6 +22,14 @@ function setAuthToken(token) {
  */
 function removeAuthToken() {
   localStorage.removeItem('bt4500_token');
+  localStorage.removeItem('bt4500_token_type');
+}
+
+/**
+ * Get token type (local or auth0)
+ */
+function getTokenType() {
+  return localStorage.getItem('bt4500_token_type') || 'local';
 }
 
 /**
@@ -74,7 +83,7 @@ const apiService = {
       body: JSON.stringify({ email, password }),
     });
     if (response.token) {
-      setAuthToken(response.token);
+      setAuthToken(response.token, response.tokenType || 'local');
     }
     return response;
   },
@@ -89,10 +98,38 @@ const apiService = {
       body: JSON.stringify(userData),
     });
     if (response.token) {
-      setAuthToken(response.token);
+      setAuthToken(response.token, response.tokenType || 'local');
     }
     return response;
   },
+
+  /**
+   * Get auth configuration
+   * GET /auth/config
+   */
+  getAuthConfig: async () => {
+    try {
+      return await fetchAPI('/auth/config');
+    } catch (error) {
+      return { auth0Enabled: false };
+    }
+  },
+
+  /**
+   * Request password reset
+   * POST /auth/forgot-password
+   */
+  forgotPassword: async (email) => {
+    return await fetchAPI('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  /**
+   * Get token type (local or auth0)
+   */
+  getTokenType,
 
   /**
    * Logout user

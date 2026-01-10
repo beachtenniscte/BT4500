@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Player = require('../models/Player');
-const { generateToken, authenticate } = require('../middleware/auth');
+const { generateToken, authenticate, isAuth0Enabled } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
+const Auth0Service = require('../services/Auth0Service');
 
 /**
  * POST /api/auth/register
- * Register a new user
+ * Register a new user - supports both local and Auth0 registration
  */
 router.post('/register', [
   body('email').trim().notEmpty().withMessage('Username is required'),
@@ -29,8 +30,34 @@ router.post('/register', [
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Create user
-    const user = await User.create({ email, password, role: 'player' });
+    let auth0Id = null;
+    let token;
+
+    // If Auth0 is configured, register user in Auth0 first
+    if (Auth0Service.isConfigured()) {
+      try {
+        const auth0Result = await Auth0Service.register(email, password, {
+          firstName,
+          lastName
+        });
+        auth0Id = auth0Result.auth0Id;
+
+        // Login to get access token
+        const loginResult = await Auth0Service.login(email, password);
+        token = loginResult.access_token;
+      } catch (auth0Error) {
+        console.error('Auth0 registration failed:', auth0Error.message);
+        return res.status(400).json({ error: auth0Error.message || 'Registration failed' });
+      }
+    }
+
+    // Create user in local database
+    const user = await User.create({
+      email,
+      password: Auth0Service.isConfigured() ? null : password, // No local password if using Auth0
+      role: 'player',
+      auth0Id
+    });
 
     // If player info provided, create player profile
     let player = null;
@@ -44,13 +71,17 @@ router.post('/register', [
       });
     }
 
-    const token = generateToken(user);
+    // Generate local token if not using Auth0
+    if (!token) {
+      token = generateToken(user);
+    }
 
     res.status(201).json({
       message: 'Registration successful',
       user: { id: user.uuid, email: user.email, role: user.role },
       player: player ? { id: player.uuid, name: player.full_name } : null,
-      token
+      token,
+      tokenType: Auth0Service.isConfigured() ? 'auth0' : 'local'
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -60,7 +91,7 @@ router.post('/register', [
 
 /**
  * POST /api/auth/login
- * Login user
+ * Login user - supports both local and Auth0 authentication
  */
 router.post('/login', [
   body('email').trim().notEmpty().withMessage('Username is required'),
@@ -74,6 +105,40 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
+    // If Auth0 is configured, use Auth0 for authentication
+    if (Auth0Service.isConfigured()) {
+      try {
+        const auth0Result = await Auth0Service.login(email, password);
+
+        // Find or create user in local database
+        let user = await User.findByEmail(email);
+
+        if (!user) {
+          // Create user from Auth0
+          user = await User.create({
+            email: email,
+            password: null, // No local password for Auth0 users
+            role: 'player'
+          });
+        }
+
+        const player = await User.getLinkedPlayer(user.id);
+
+        res.json({
+          message: 'Login successful',
+          user: { id: user.uuid, email: user.email, role: user.role },
+          player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
+          token: auth0Result.access_token,
+          tokenType: 'auth0'
+        });
+        return;
+      } catch (auth0Error) {
+        console.error('Auth0 login failed:', auth0Error.message);
+        return res.status(401).json({ error: auth0Error.message || 'Invalid credentials' });
+      }
+    }
+
+    // Fallback to local authentication
     const user = await User.findByEmailWithPassword(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -91,7 +156,8 @@ router.post('/login', [
       message: 'Login successful',
       user: { id: user.uuid, email: user.email, role: user.role },
       player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
-      token
+      token,
+      tokenType: 'local'
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -152,6 +218,45 @@ router.post('/change-password', authenticate, [
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+/**
+ * GET /api/auth/config
+ * Get authentication configuration (for frontend to know which auth method to use)
+ */
+router.get('/config', (req, res) => {
+  res.json({
+    auth0Enabled: Auth0Service.isConfigured(),
+    auth0Domain: Auth0Service.isConfigured() ? process.env.AUTH0_DOMAIN : null
+  });
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Send password reset email
+ */
+router.post('/forgot-password', [
+  body('email').trim().isEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    if (Auth0Service.isConfigured()) {
+      await Auth0Service.sendPasswordReset(email);
+    }
+
+    // Always return success to prevent email enumeration
+    res.json({ message: 'If the email exists, a password reset link has been sent.' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    // Still return success to prevent email enumeration
+    res.json({ message: 'If the email exists, a password reset link has been sent.' });
   }
 });
 

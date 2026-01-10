@@ -55,15 +55,16 @@ class User {
 
   static async create(data) {
     const uuid = uuidv4();
-    const { email, password, role = 'player' } = data;
+    const { email, password, role = 'player', auth0Id = null } = data;
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Password can be null for Auth0-only users
+    const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 
     const [result] = await pool.query(
-      `INSERT INTO users (uuid, email, password_hash, role)
+      `INSERT INTO users (uuid, email, password_hash, role, auth0_id)
        OUTPUT INSERTED.id
-       VALUES (?, ?, ?, ?)`,
-      [uuid, email, passwordHash, role]
+       VALUES (?, ?, ?, ?, ?)`,
+      [uuid, email, passwordHash, role, auth0Id]
     );
 
     const insertedId = result[0]?.id;
@@ -90,6 +91,11 @@ class User {
       values.push(data.role);
     }
 
+    if (data.auth0Id) {
+      fields.push('auth0_id = ?');
+      values.push(data.auth0Id);
+    }
+
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
@@ -102,7 +108,19 @@ class User {
   }
 
   static async verifyPassword(user, password) {
+    // Auth0 users don't have local passwords
+    if (!user.password_hash) {
+      return false;
+    }
     return bcrypt.compare(password, user.password_hash);
+  }
+
+  static async findByAuth0Id(auth0Id) {
+    const [rows] = await pool.query(
+      `SELECT id, uuid, email, role, auth0_id, created_at, updated_at FROM users WHERE auth0_id = ?`,
+      [auth0Id]
+    );
+    return rows[0] || null;
   }
 
   static async delete(id) {
