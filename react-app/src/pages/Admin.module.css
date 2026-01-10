@@ -128,6 +128,146 @@
   gap: 20px;
 }
 
+/* Tournament Form */
+.tournamentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formRow {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.formGroup {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 14px;
+  font-weight: bold;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.formInput,
+.formSelect {
+  padding: 12px 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: #4CA69E;
+  box-shadow: 0 0 0 3px rgba(76, 166, 158, 0.1);
+}
+
+.formInput::placeholder {
+  color: #aaa;
+}
+
+.formSelect {
+  cursor: pointer;
+}
+
+/* Success Card */
+.successCard {
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(76, 166, 158, 0.05) 100%);
+  border-left: 5px solid #4CA69E;
+  border-radius: 8px;
+  padding: 15px 20px;
+}
+
+.successCard p {
+  margin: 0;
+  color: #2d8a7e;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Warning Card */
+.warningCard {
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(243, 156, 18, 0.05) 100%);
+  border-left: 5px solid #f39c12;
+  border-radius: 8px;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.warningCard p {
+  margin: 0;
+  color: #b8860b;
+  font-size: 14px;
+}
+
+/* File label disabled state */
+.fileLabelDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Categories Grid */
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.categoryCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.05) 0%, rgba(119, 68, 148, 0.05) 100%);
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.categoryCheckbox:hover {
+  border-color: #4CA69E;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
+}
+
+.categoryCheckbox:has(input:checked) {
+  border-color: #4CA69E;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.15) 0%, rgba(119, 68, 148, 0.15) 100%);
+}
+
+.categoryLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.categoryCode {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.categoryName {
+  font-size: 12px;
+  color: #666;
+}
+
 .fileInputWrapper {
   position: relative;
 }
@@ -389,6 +529,18 @@
   .importButton {
     width: 100%;
   }
+
+  .formRow {
+    flex-direction: column;
+  }
+
+  .formGroup {
+    min-width: 100%;
+  }
+
+  .categoriesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 480px) {
@@ -412,5 +564,19 @@
 
   .actionButton {
     width: 100%;
+  }
+
+  .formInput,
+  .formSelect {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .categoriesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .categoryCheckbox {
+    padding: 10px 14px;
   }
 }

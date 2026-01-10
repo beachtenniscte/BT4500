@@ -1,18 +1,25 @@
 -- BT4500 Database Schema
--- Generated from migrate.js
--- Updated with IF NOT EXISTS checks for safety
+-- Updated with IF EXISTS TRUNCATE (Reset) logic
 
--- Create database (run this part first, then connect to the database and run the rest)
--- IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'bt4500')
--- BEGIN
---     CREATE DATABASE [bt4500]
--- END
--- GO
--- USE [bt4500]
--- GO
+-- ==================================================================================
+-- PRE-FLIGHT: Disable Foreign Keys
+-- This allows us to clear parent tables even if child tables have data
+-- ==================================================================================
+EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"
+GO
+
+-- ==================================================================================
+-- TABLES
+-- ==================================================================================
 
 -- Users table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[users]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[users]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Users...'
+    DELETE FROM users;
+    DBCC CHECKIDENT ('users', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE users (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -27,7 +34,13 @@ END
 GO
 
 -- Players table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[players]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[players]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Players...'
+    DELETE FROM players;
+    DBCC CHECKIDENT ('players', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE players (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -66,7 +79,13 @@ END
 GO
 
 -- Tournaments table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournaments]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournaments]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Tournaments...'
+    DELETE FROM tournaments;
+    DBCC CHECKIDENT ('tournaments', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE tournaments (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -87,7 +106,13 @@ END
 GO
 
 -- Categories table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[categories]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[categories]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Categories...'
+    DELETE FROM categories;
+    DBCC CHECKIDENT ('categories', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE categories (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -101,7 +126,13 @@ END
 GO
 
 -- Tournament Categories
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournament_categories]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournament_categories]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Tournament Categories...'
+    DELETE FROM tournament_categories;
+    DBCC CHECKIDENT ('tournament_categories', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE tournament_categories (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -117,7 +148,13 @@ END
 GO
 
 -- Teams table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[teams]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[teams]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Teams...'
+    DELETE FROM teams;
+    DBCC CHECKIDENT ('teams', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE teams (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -135,7 +172,13 @@ END
 GO
 
 -- Tournament Registrations
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournament_registrations]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tournament_registrations]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Tournament Registrations...'
+    DELETE FROM tournament_registrations;
+    DBCC CHECKIDENT ('tournament_registrations', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE tournament_registrations (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -156,7 +199,13 @@ END
 GO
 
 -- Matches table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[matches]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[matches]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Matches...'
+    DELETE FROM matches;
+    DBCC CHECKIDENT ('matches', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE matches (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -197,7 +246,13 @@ END
 GO
 
 -- Points table
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[points_table]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[points_table]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Points Table...'
+    DELETE FROM points_table;
+    DBCC CHECKIDENT ('points_table', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE points_table (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -213,7 +268,13 @@ END
 GO
 
 -- Player Rankings History
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[player_rankings]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[player_rankings]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Player Rankings...'
+    DELETE FROM player_rankings;
+    DBCC CHECKIDENT ('player_rankings', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE player_rankings (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -233,7 +294,13 @@ END
 GO
 
 -- Player Tournament Results
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[player_tournament_results]') AND type in (N'U'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[player_tournament_results]') AND type in (N'U'))
+BEGIN
+    PRINT 'Clearing Player Tournament Results...'
+    DELETE FROM player_tournament_results;
+    DBCC CHECKIDENT ('player_tournament_results', RESEED, 0);
+END
+ELSE
 BEGIN
     CREATE TABLE player_tournament_results (
       id INT IDENTITY(1,1) PRIMARY KEY,
@@ -271,6 +338,13 @@ BEGIN
 END
 GO
 
+-- ==================================================================================
+-- POST-FLIGHT: Re-enable Foreign Keys
+-- Restore integrity checks now that data is cleared
+-- ==================================================================================
+EXEC sp_msforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all"
+GO
+
 -- ========================================
--- Schema Check Complete
+-- Schema Check & Data Reset Complete
 -- ========================================

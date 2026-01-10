@@ -68,8 +68,13 @@ class CSVImportService {
 
   /**
    * Import tournament data from CSV file
+   * @param {string} filePath - Path to CSV file
+   * @param {number} tournamentId - ID of the tournament to import data into
+   * @param {object} options - Import options
+   * @param {boolean} options.calculatePoints - Whether to calculate points after import (default: true)
+   * @param {boolean} options.clearExisting - Whether to clear existing results first (default: false)
    */
-  static async importFromCSV(filePath, options = {}) {
+  static async importFromCSV(filePath, tournamentId, options = {}) {
     // For MS SQL, we use simple queries without explicit transaction management
     const results = {
       tournament: null,
@@ -81,6 +86,28 @@ class CSVImportService {
     };
 
     try {
+      // Tournament ID is now required
+      if (!tournamentId) {
+        throw new Error('Tournament ID is required. Please select a tournament first.');
+      }
+
+      // Get the tournament
+      const [tournamentRows] = await pool.query(
+        `SELECT * FROM tournaments WHERE id = ?`,
+        [tournamentId]
+      );
+
+      if (tournamentRows.length === 0) {
+        throw new Error('Tournament not found');
+      }
+
+      const tournament = tournamentRows[0];
+      results.tournament = tournament;
+
+      // Clear existing results if requested
+      if (options.clearExisting) {
+        await this.clearTournamentResults(tournamentId);
+      }
 
       // Read and parse CSV
       const rows = await this.readCSV(filePath);
@@ -89,42 +116,48 @@ class CSVImportService {
         throw new Error('CSV file is empty');
       }
 
-      // Extract tournament info from first row
-      const firstRow = rows[0];
-      const tournamentCode = firstRow['TORNEIO'] || firstRow.TORNEIO;
+      // Get existing tournament categories (only import data for categories already defined)
+      const [existingTournamentCategories] = await pool.query(
+        `SELECT tc.id as tournament_category_id, tc.category_id, c.code, c.name, c.gender, c.level
+         FROM tournament_categories tc
+         JOIN categories c ON tc.category_id = c.id
+         WHERE tc.tournament_id = ?`,
+        [tournamentId]
+      );
 
-      // Parse tournament info
-      const tournamentInfo = this.parseTournamentCode(tournamentCode);
+      // Build lookup of allowed categories
+      const allowedCategories = {};
+      for (const tc of existingTournamentCategories) {
+        allowedCategories[tc.code] = {
+          id: tc.category_id,
+          code: tc.code,
+          name: tc.name,
+          gender: tc.gender,
+          level: tc.level,
+          tournamentCategoryId: tc.tournament_category_id
+        };
+        results.categories.push(allowedCategories[tc.code]);
+      }
 
-      // Create or find tournament
-      let tournament = await this.findOrCreateTournament({
-        ...tournamentInfo,
-        location: firstRow['LOCAL'] || firstRow.LOCAL || 'BT Espinho'
-      });
-      results.tournament = tournament;
-
-      // Get unique categories
-      const categorySet = new Set();
+      // Get unique categories from CSV and check which ones are allowed
+      const csvCategories = new Set();
       for (const row of rows) {
         const catStr = row['CATEGORIA'] || row.CATEGORIA;
         if (catStr) {
           const catCode = catStr.split(' - ')[0].trim();
-          categorySet.add(catCode);
+          csvCategories.add(catCode);
         }
       }
 
-      // Create tournament categories
-      for (const catCode of categorySet) {
-        const category = await this.findOrCreateCategory(catCode);
-        const tournamentCategory = await this.createTournamentCategory(tournament.id, category.id);
-        results.categories.push({ code: catCode, ...category, tournamentCategoryId: tournamentCategory.id });
+      // Log which categories from CSV will be skipped
+      for (const catCode of csvCategories) {
+        if (!allowedCategories[catCode]) {
+          console.log(`Skipping category ${catCode} - not in tournament_categories for tournament ${tournamentId}`);
+        }
       }
 
-      // Create category lookup
-      const categoryLookup = {};
-      for (const cat of results.categories) {
-        categoryLookup[cat.code] = cat;
-      }
+      // Create category lookup (only allowed categories)
+      const categoryLookup = allowedCategories;
 
       // Process each match
       const playerCache = new Map();
@@ -533,6 +566,37 @@ class CSVImportService {
    */
   static normalizeTeamName(name) {
     return name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() || '';
+  }
+
+  /**
+   * Clear all results for a tournament before re-import
+   * Note: Does NOT delete tournament_categories - those are preserved so the admin's
+   * category selections remain intact for the re-import
+   */
+  static async clearTournamentResults(tournamentId) {
+    // Delete in order of dependencies
+    // 1. Delete player tournament results
+    await pool.query(
+      `DELETE FROM player_tournament_results WHERE tournament_id = ?`,
+      [tournamentId]
+    );
+
+    // 2. Delete matches
+    await pool.query(
+      `DELETE FROM matches WHERE tournament_id = ?`,
+      [tournamentId]
+    );
+
+    // 3. Delete tournament registrations
+    await pool.query(
+      `DELETE FROM tournament_registrations WHERE tournament_id = ?`,
+      [tournamentId]
+    );
+
+    // Note: tournament_categories are NOT deleted - they define which categories
+    // the admin wants to import data for and should be preserved across re-imports
+
+    return true;
   }
 }
 

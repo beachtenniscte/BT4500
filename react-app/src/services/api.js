@@ -138,24 +138,44 @@ const apiService = {
   /**
    * Get list of provas (tournaments formatted for UI)
    * GET /tournaments
+   * @param {number} year - Year to filter tournaments
    */
-  getProvas: async () => {
+  getProvas: async (year = new Date().getFullYear()) => {
     try {
-      const response = await fetchAPI('/tournaments?year=2025&orderBy=start_date&order=ASC');
+      const response = await fetchAPI(`/tournaments?year=${year}&orderBy=start_date&order=ASC`);
       // Transform tournament data to prova format
       if (response.data) {
         return response.data.map(t => ({
           id: t.id,
           type: t.tier,
           dates: formatTournamentDates(t.start_date, t.end_date),
-          status: t.status === 'completed' ? 'completed' : 'upcoming',
+          status: t.status === 'completed' ? 'completed' : (t.status === 'in_progress' ? 'in_progress' : 'upcoming'),
           name: t.name,
           uuid: t.uuid
         }));
       }
-      return null;
+      return [];
     } catch (error) {
-      return null;
+      return [];
+    }
+  },
+
+  /**
+   * Get available years with tournaments
+   * GET /tournaments (distinct years)
+   */
+  getAvailableYears: async () => {
+    try {
+      // Fetch all tournaments and extract unique years
+      const response = await fetchAPI('/tournaments?orderBy=year&order=DESC');
+      if (response.data && response.data.length > 0) {
+        // Ensure years are integers for proper comparison
+        const years = [...new Set(response.data.map(t => parseInt(t.year)))].filter(y => !isNaN(y));
+        return years.sort((a, b) => b - a); // Sort descending
+      }
+      return [new Date().getFullYear()];
+    } catch (error) {
+      return [new Date().getFullYear()];
     }
   },
 
@@ -370,14 +390,53 @@ const apiService = {
   // ==================== ADMIN ENDPOINTS ====================
 
   /**
-   * Import tournament from CSV file
-   * POST /admin/import-csv
+   * Create a new tournament
+   * POST /admin/tournaments
    */
-  importCSV: async (file, calculatePoints = true) => {
+  createTournament: async (data) => {
+    return await fetchAPI('/admin/tournaments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get tournament details with result status (for admin import flow)
+   * GET /admin/tournaments/:id
+   */
+  getTournamentWithStatus: async (uuid) => {
+    try {
+      return await fetchAPI(`/admin/tournaments/${uuid}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Clear tournament results
+   * DELETE /admin/tournaments/:id/results
+   */
+  clearTournamentResults: async (uuid) => {
+    return await fetchAPI(`/admin/tournaments/${uuid}/results`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Import tournament from CSV file into an existing tournament
+   * POST /admin/import-csv
+   * @param {File} file - CSV file to import
+   * @param {number} tournamentId - ID of the tournament to import into
+   * @param {boolean} calculatePoints - Whether to calculate points after import
+   * @param {boolean} clearExisting - Whether to clear existing results first
+   */
+  importCSV: async (file, tournamentId, calculatePoints = true, clearExisting = false) => {
     const token = getAuthToken();
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('tournamentId', tournamentId.toString());
     formData.append('calculatePoints', calculatePoints.toString());
+    formData.append('clearExisting', clearExisting.toString());
 
     const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
       method: 'POST',
@@ -396,10 +455,14 @@ const apiService = {
   },
 
   /**
-   * Import multiple tournaments from CSV files (processed sequentially)
+   * Import multiple CSV files into an existing tournament (processed sequentially)
    * POST /admin/import-csv-multiple
+   * @param {FileList|File[]} files - CSV files to import
+   * @param {number} tournamentId - ID of the tournament to import into
+   * @param {boolean} calculatePoints - Whether to calculate points after import
+   * @param {boolean} clearExisting - Whether to clear existing results first
    */
-  importCSVMultiple: async (files, calculatePoints = true) => {
+  importCSVMultiple: async (files, tournamentId, calculatePoints = true, clearExisting = false) => {
     const token = getAuthToken();
     const formData = new FormData();
 
@@ -407,7 +470,9 @@ const apiService = {
     for (const file of files) {
       formData.append('files', file);
     }
+    formData.append('tournamentId', tournamentId.toString());
     formData.append('calculatePoints', calculatePoints.toString());
+    formData.append('clearExisting', clearExisting.toString());
 
     const response = await fetch(`${API_BASE_URL}/admin/import-csv-multiple`, {
       method: 'POST',

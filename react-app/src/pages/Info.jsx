@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import apiService from '../services/api';
-import styles from './PageLayout.module.css';
+import TopNavBar from '../components/TopNavBar';
+import styles from './Info.module.css';
 
 function Info() {
   const [content, setContent] = useState({
@@ -19,21 +19,9 @@ function Info() {
 
   return (
     <div className={styles.container}>
-      <Link to="/profile" className={styles.profileButton}>
-        <svg viewBox="0 0 24 24" className={styles.profileIcon}>
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-          <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-          <path d="M6.5 18.5C7.5 16.5 9.5 15 12 15C14.5 15 16.5 16.5 17.5 18.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-        </svg>
-      </Link>
+      <TopNavBar title="LIGA BT4500" showBack={true} backTo="/" />
 
-      <div className={styles.innerPage}>
-        <Link to="/" className={styles.backButton}>
-          <span>&lt;&lt;</span>
-        </Link>
-
-        <h1 className={styles.pageTitle}>LIGA BT4500</h1>
-
+      <div className={styles.content}>
         <div className={styles.infoCard}>
           <div className={styles.cardHeader}>
             <div className={styles.headerIcon}>

@@ -1,0 +1,417 @@
+/* Provas Page Styles */
+
+.container {
+  min-height: 100vh;
+  padding-top: 60px; /* Space for fixed TopNavBar */
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Loading & Error States */
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: white;
+  gap: 15px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #f39c12;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.retryButton {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+}
+
+/* Year Filter */
+.yearFilter {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.yearButton {
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  padding: 10px 24px;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.yearButton:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.yearButtonActive {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border-color: #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+}
+
+.yearButtonActive:hover {
+  background: linear-gradient(135deg, #f5a623 0%, #e8850c 100%);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: white;
+  text-align: center;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.emptyIcon {
+  width: 80px;
+  height: 80px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 20px;
+}
+
+.emptyState h3 {
+  font-size: 24px;
+  font-weight: bold;
+  font-style: italic;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+}
+
+.emptyState p {
+  font-size: 16px;
+  opacity: 0.8;
+  margin: 0;
+}
+
+/* Main Card */
+.mainCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 25px;
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+  color: white;
+}
+
+.headerIcon {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headerIcon svg {
+  width: 24px;
+  height: 24px;
+  stroke: white;
+}
+
+.cardTitle {
+  font-size: 24px;
+  font-weight: bold;
+  font-style: italic;
+  margin: 0;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cardContent {
+  padding: 20px;
+}
+
+/* Provas List */
+.provasList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.provaCard {
+  background: linear-gradient(to right, rgba(76, 166, 158, 0.05) 0%, rgba(119, 68, 148, 0.05) 100%);
+  border-left: 4px solid #f39c12;
+  border-radius: 8px;
+  padding: 16px 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.provaCard:hover {
+  background: linear-gradient(to right, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.provaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.provaMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tierBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  background: linear-gradient(135deg, #4CA69E 0%, #3d8a82 100%);
+}
+
+.tierBadge.gold {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.tierBadge.silver {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.tierBadge.bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
+}
+
+.provaName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.provaDates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
+.dateIcon {
+  width: 16px;
+  height: 16px;
+  color: #888;
+}
+
+/* Status Badges */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusUpcoming {
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.15) 0%, rgba(76, 166, 158, 0.25) 100%);
+  color: #4CA69E;
+  border: 1px solid rgba(76, 166, 158, 0.3);
+}
+
+.statusLive {
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(243, 156, 18, 0.25) 100%);
+  color: #e67e22;
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.statusCompleted {
+  background: linear-gradient(135deg, rgba(119, 68, 148, 0.15) 0%, rgba(119, 68, 148, 0.25) 100%);
+  color: #774494;
+  border: 1px solid rgba(119, 68, 148, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding-top: 56px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+
+  .yearFilter {
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .yearButton {
+    padding: 8px 18px;
+    font-size: 14px;
+  }
+
+  .cardHeader {
+    padding: 20px;
+  }
+
+  .cardTitle {
+    font-size: 20px;
+  }
+
+  .cardContent {
+    padding: 15px;
+  }
+
+  .emptyIcon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .emptyState h3 {
+    font-size: 20px;
+  }
+
+  .emptyState p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 12px;
+  }
+
+  .cardHeader {
+    padding: 15px;
+    gap: 12px;
+  }
+
+  .headerIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .headerIcon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cardTitle {
+    font-size: 18px;
+  }
+
+  .cardContent {
+    padding: 12px;
+  }
+
+  .provaCard {
+    padding: 14px 16px;
+  }
+
+  .tierBadge {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .provaName {
+    font-size: 14px;
+  }
+
+  .provaDates {
+    font-size: 13px;
+  }
+
+  .statusBadge {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .container {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+}

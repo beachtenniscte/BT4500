@@ -1,0 +1,200 @@
+/* Info Page Styles */
+
+.container {
+  min-height: 100vh;
+  padding-top: 60px; /* Space for fixed TopNavBar */
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Info Card */
+.infoCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 25px;
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+  color: white;
+}
+
+.headerIcon {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headerIcon svg {
+  width: 24px;
+  height: 24px;
+  stroke: white;
+}
+
+.cardTitle {
+  font-size: 24px;
+  font-weight: bold;
+  font-style: italic;
+  margin: 0;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cardContent {
+  padding: 30px;
+}
+
+.paragraph {
+  color: #333;
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.cardFooter {
+  padding: 25px 30px;
+  padding-top: 0;
+}
+
+/* Regulamento Button */
+.regulamentoButton {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 15px 25px;
+  font-size: 16px;
+  font-weight: bold;
+  font-style: italic;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.regulamentoButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(243, 156, 18, 0.4);
+}
+
+.buttonIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding-top: 56px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+
+  .cardHeader {
+    padding: 20px;
+  }
+
+  .cardTitle {
+    font-size: 20px;
+  }
+
+  .cardContent {
+    padding: 25px;
+  }
+
+  .cardFooter {
+    padding: 20px 25px;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 12px;
+  }
+
+  .cardHeader {
+    padding: 15px;
+    gap: 12px;
+  }
+
+  .headerIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .headerIcon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cardTitle {
+    font-size: 18px;
+  }
+
+  .cardContent {
+    padding: 20px;
+  }
+
+  .paragraph {
+    font-size: 14px;
+  }
+
+  .cardFooter {
+    padding: 15px 20px;
+    padding-top: 0;
+  }
+
+  .regulamentoButton {
+    padding: 12px 20px;
+    font-size: 14px;
+    width: 100%;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .container {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+}

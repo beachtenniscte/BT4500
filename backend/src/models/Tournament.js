@@ -125,6 +125,21 @@ class Tournament {
     }
   }
 
+  static async addCategoryByCode(tournamentId, categoryCode, drawSize = 16, format = 'mixed') {
+    // Find category by code
+    const [categories] = await pool.query(
+      `SELECT id FROM categories WHERE code = ?`,
+      [categoryCode]
+    );
+
+    if (categories.length === 0) {
+      return null; // Category not found
+    }
+
+    const categoryId = categories[0].id;
+    return this.addCategory(tournamentId, categoryId, drawSize, format);
+  }
+
   static async getMatches(tournamentId, categoryCode = null) {
     let query = `
       SELECT m.*,
@@ -192,6 +207,56 @@ class Tournament {
   static async delete(id) {
     await pool.query(`DELETE FROM tournaments WHERE id = ?`, [id]);
     return true;
+  }
+
+  static async clearResults(id) {
+    // Delete in order of dependencies
+    // Note: Does NOT delete tournament_categories - those are preserved so the admin's
+    // category selections remain intact for re-imports
+
+    // 1. Delete player tournament results
+    const [playerResults] = await pool.query(
+      `DELETE FROM player_tournament_results WHERE tournament_id = ?`,
+      [id]
+    );
+
+    // 2. Delete matches
+    const [matches] = await pool.query(
+      `DELETE FROM matches WHERE tournament_id = ?`,
+      [id]
+    );
+
+    // 3. Delete tournament registrations
+    const [registrations] = await pool.query(
+      `DELETE FROM tournament_registrations WHERE tournament_id = ?`,
+      [id]
+    );
+
+    // Note: tournament_categories are NOT deleted - they define which categories
+    // the admin wants to import data for and should be preserved across re-imports
+
+    return {
+      deletedPlayerResults: playerResults.rowsAffected || 0,
+      deletedMatches: matches.rowsAffected || 0,
+      deletedRegistrations: registrations.rowsAffected || 0
+    };
+  }
+
+  static async getResultsCount(id) {
+    const [matchCount] = await pool.query(
+      `SELECT COUNT(*) as count FROM matches WHERE tournament_id = ?`,
+      [id]
+    );
+    const [registrationCount] = await pool.query(
+      `SELECT COUNT(*) as count FROM tournament_registrations WHERE tournament_id = ?`,
+      [id]
+    );
+
+    return {
+      matchCount: matchCount[0]?.count || 0,
+      registrationCount: registrationCount[0]?.count || 0,
+      hasResults: (matchCount[0]?.count || 0) > 0 || (registrationCount[0]?.count || 0) > 0
+    };
   }
 }
 

@@ -1,0 +1,185 @@
+/* TopNavBar - Unified Navigation Component */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 1000;
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Home variant - transparent/subtle */
+.navbar.home {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Inner page variant - solid gradient */
+.navbar.inner {
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+}
+
+/* Sections layout */
+.leftSection,
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.leftSection {
+  justify-content: flex-start;
+}
+
+.rightSection {
+  justify-content: flex-end;
+}
+
+.centerSection {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 8px;
+}
+
+/* Title */
+.title {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Navigation buttons - 48px touch targets */
+.navButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: white;
+}
+
+.navButton:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.navButton:active {
+  transform: scale(0.95);
+}
+
+.navButton:focus-visible {
+  outline: 2px solid #f39c12;
+  outline-offset: 2px;
+}
+
+/* Admin button - distinct styling */
+.adminButton {
+  background: rgba(243, 156, 18, 0.3);
+  border: 2px solid rgba(243, 156, 18, 0.5);
+}
+
+.adminButton:hover {
+  background: rgba(243, 156, 18, 0.4);
+}
+
+/* Icons */
+.icon {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+/* Home variant icons - darker for contrast on light backgrounds */
+.navbar.home .icon {
+  color: white;
+}
+
+.navbar.home .navButton {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.navbar.home .navButton:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .navbar {
+    height: 56px;
+    padding: 0 8px;
+  }
+
+  .title {
+    font-size: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .navButton {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .leftSection,
+  .rightSection {
+    min-width: 44px;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 360px) {
+  .title {
+    font-size: 14px;
+  }
+
+  .navButton {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+    height: calc(60px + env(safe-area-inset-top));
+  }
+}
