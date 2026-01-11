@@ -72,6 +72,48 @@ class Player {
     return rows[0] || null;
   }
 
+  /**
+   * Find a player by email address (for user-player linking)
+   * @param {string} email - The email to search for
+   * @returns {Promise<Object|null>} The player if found, null otherwise
+   */
+  static async findByEmail(email) {
+    if (!email) return null;
+    const [rows] = await pool.query(
+      `SELECT * FROM players WHERE email = ? AND active = 1`,
+      [email.toLowerCase().trim()]
+    );
+    return rows[0] || null;
+  }
+
+  /**
+   * Find an unlinked player by email (no user_id set)
+   * @param {string} email - The email to search for
+   * @returns {Promise<Object|null>} The player if found and unlinked, null otherwise
+   */
+  static async findUnlinkedByEmail(email) {
+    if (!email) return null;
+    const [rows] = await pool.query(
+      `SELECT * FROM players WHERE email = ? AND user_id IS NULL AND active = 1`,
+      [email.toLowerCase().trim()]
+    );
+    return rows[0] || null;
+  }
+
+  /**
+   * Link a player to a user account
+   * @param {number} playerId - The player's internal ID
+   * @param {number} userId - The user's internal ID
+   * @returns {Promise<Object>} The updated player
+   */
+  static async linkToUser(playerId, userId) {
+    await pool.query(
+      `UPDATE players SET user_id = ? WHERE id = ?`,
+      [userId, playerId]
+    );
+    return this.findById(playerId);
+  }
+
   static async findOrCreateByName(firstName, lastName, gender) {
     const fullName = `${firstName} ${lastName}`;
     let player = await this.findByName(fullName);
@@ -90,13 +132,13 @@ class Player {
 
   static async create(data) {
     const uuid = uuidv4();
-    const { firstName, lastName, gender, birthDate, city, country, photoUrl, level, userId } = data;
+    const { firstName, lastName, gender, birthDate, city, country, photoUrl, level, userId, email } = data;
 
     const [result] = await pool.query(
-      `INSERT INTO players (uuid, user_id, first_name, last_name, gender, birth_date, city, country, photo_url, level)
+      `INSERT INTO players (uuid, user_id, first_name, last_name, gender, birth_date, city, country, photo_url, level, email)
        OUTPUT INSERTED.id
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uuid, userId || null, firstName, lastName, gender, birthDate || null, city || null, country || 'Portugal', photoUrl || null, level || 2]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uuid, userId || null, firstName, lastName, gender, birthDate || null, city || null, country || 'Portugal', photoUrl || null, level || 2, email ? email.toLowerCase().trim() : null]
     );
 
     const insertedId = result[0]?.id;

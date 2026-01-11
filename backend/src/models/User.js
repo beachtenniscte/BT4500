@@ -135,6 +135,40 @@ class User {
     );
     return rows[0] || null;
   }
+
+  /**
+   * Try to link a user to an existing player by matching email
+   * @param {number} userId - The user's internal ID
+   * @param {string} email - The email to match against players
+   * @returns {Promise<Object|null>} The linked player if found, null otherwise
+   */
+  static async linkToPlayerByEmail(userId, email) {
+    if (!email) return null;
+
+    // First check if user already has a linked player
+    const existingPlayer = await this.getLinkedPlayer(userId);
+    if (existingPlayer) {
+      return existingPlayer;
+    }
+
+    // Find unlinked player with matching email
+    const [rows] = await pool.query(
+      `SELECT * FROM players WHERE email = ? AND user_id IS NULL AND active = 1`,
+      [email.toLowerCase().trim()]
+    );
+
+    const player = rows[0];
+    if (player) {
+      // Link the player to this user
+      await pool.query(
+        `UPDATE players SET user_id = ? WHERE id = ?`,
+        [userId, player.id]
+      );
+      return { ...player, user_id: userId };
+    }
+
+    return null;
+  }
 }
 
 module.exports = User;

@@ -133,12 +133,16 @@ router.post('/login', [
           }
         }
 
-        const player = await User.getLinkedPlayer(user.id);
+        // Try to link user to player by email if not already linked
+        let player = await User.getLinkedPlayer(user.id);
+        if (!player) {
+          player = await User.linkToPlayerByEmail(user.id, email);
+        }
 
         res.json({
           message: 'Login successful',
           user: { id: user.uuid, email: user.email, role: user.role },
-          player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
+          player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking, totalPoints: player.total_points } : null,
           token: auth0Result.access_token,
           tokenType: 'auth0'
         });
@@ -161,12 +165,17 @@ router.post('/login', [
     }
 
     const token = generateToken(user);
-    const player = await User.getLinkedPlayer(user.id);
+
+    // Try to link user to player by email if not already linked
+    let player = await User.getLinkedPlayer(user.id);
+    if (!player) {
+      player = await User.linkToPlayerByEmail(user.id, email);
+    }
 
     res.json({
       message: 'Login successful',
       user: { id: user.uuid, email: user.email, role: user.role },
-      player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
+      player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking, totalPoints: player.total_points } : null,
       token,
       tokenType: 'local'
     });
@@ -182,7 +191,11 @@ router.post('/login', [
  */
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const player = await User.getLinkedPlayer(req.user.id);
+    // Try to link user to player by email if not already linked
+    let player = await User.getLinkedPlayer(req.user.id);
+    if (!player) {
+      player = await User.linkToPlayerByEmail(req.user.id, req.user.email);
+    }
 
     res.json({
       user: { id: req.user.uuid, email: req.user.email, role: req.user.role },
@@ -246,6 +259,7 @@ router.get('/config', (req, res) => {
 /**
  * POST /api/auth/google
  * Login/Register with Google OAuth token
+ * Verifies the Google ID token, creates user in Auth0, and creates local session
  */
 router.post('/google', [
   body('token').notEmpty().withMessage('Google token is required')
@@ -258,54 +272,78 @@ router.post('/google', [
 
     const { token } = req.body;
 
-    // Verify Google token with Auth0
-    if (!Auth0Service.isConfigured()) {
-      return res.status(400).json({ error: 'Social login not configured' });
-    }
-
     try {
-      // Exchange Google token for Auth0 token
-      const auth0Result = await Auth0Service.loginWithGoogle(token);
+      // Verify Google token directly using Google's API
+      const googleUser = await Auth0Service.verifyGoogleToken(token);
 
-      // Decode token to extract user info and role
-      const decoded = Auth0Service.decodeToken(auth0Result.access_token);
-      const auth0Role = decoded ? Auth0Service.extractRoleFromToken(decoded) : 'player';
-      const email = decoded?.email || decoded?.sub;
-
+      const email = googleUser.email;
       if (!email) {
         return res.status(400).json({ error: 'Could not get email from Google account' });
+      }
+
+      // Create or find user in Auth0 (if Auth0 is configured)
+      let auth0User = null;
+      let auth0Role = 'player'; // Default role
+      if (Auth0Service.isConfigured()) {
+        try {
+          auth0User = await Auth0Service.createOrFindGoogleUser(googleUser);
+          console.log('Auth0 user:', auth0User.isNew ? 'created' : 'found', auth0User.email);
+
+          // Fetch user roles from Auth0 to sync with local database
+          if (auth0User.auth0Id) {
+            const roles = await Auth0Service.getUserRoles(auth0User.auth0Id);
+            auth0Role = Auth0Service.getRoleFromAuth0Roles(roles);
+            console.log('Auth0 roles:', roles, '-> local role:', auth0Role);
+          }
+        } catch (auth0Error) {
+          // Log but don't fail - we can still create a local user
+          console.error('Auth0 user creation failed (continuing with local):', auth0Error.message);
+        }
       }
 
       // Find or create user in local database
       let user = await User.findByEmail(email);
 
       if (!user) {
-        // Create user from Google login
+        // Create user from Google login with role from Auth0
         user = await User.create({
           email: email,
           password: null, // No local password for social login users
-          role: auth0Role,
-          auth0Id: decoded?.sub
+          role: auth0Role, // Use role from Auth0
+          auth0Id: auth0User?.auth0Id || googleUser.sub // Use Auth0 ID if available
         });
       } else {
-        // Sync role from Auth0 if it changed
-        if (user.role !== auth0Role || !user.auth0_id) {
-          await User.update(user.id, {
-            role: auth0Role,
-            auth0Id: decoded?.sub
-          });
-          user.role = auth0Role;
+        // Update auth0Id if not set and sync role from Auth0
+        const updates = {};
+        if (!user.auth0_id && (auth0User?.auth0Id || googleUser.sub)) {
+          updates.auth0Id = auth0User?.auth0Id || googleUser.sub;
+        }
+        // Always sync role from Auth0 on login
+        if (user.role !== auth0Role) {
+          updates.role = auth0Role;
+          console.log('Syncing role from Auth0:', user.role, '->', auth0Role);
+        }
+        if (Object.keys(updates).length > 0) {
+          await User.update(user.id, updates);
+          user.role = auth0Role; // Update local object
         }
       }
 
-      const player = await User.getLinkedPlayer(user.id);
+      // Try to link user to player by email if not already linked
+      let player = await User.getLinkedPlayer(user.id);
+      if (!player) {
+        player = await User.linkToPlayerByEmail(user.id, email);
+      }
+
+      // Generate local JWT token
+      const jwtToken = generateToken(user);
 
       res.json({
         message: 'Login successful',
         user: { id: user.uuid, email: user.email, role: user.role },
-        player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
-        token: auth0Result.access_token,
-        tokenType: 'auth0'
+        player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking, totalPoints: player.total_points } : null,
+        token: jwtToken,
+        tokenType: 'local' // Using local token since we verified Google directly
       });
     } catch (googleError) {
       console.error('Google login failed:', googleError.message);

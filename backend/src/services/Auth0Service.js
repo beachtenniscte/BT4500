@@ -41,6 +41,22 @@ class Auth0Service {
   }
 
   /**
+   * Generate a secure random password for Auth0 users who login via social
+   * They won't use this password - it's just to satisfy Auth0's requirements
+   */
+  generateSecurePassword() {
+    const crypto = require('crypto');
+    const length = 32;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    const randomBytes = crypto.randomBytes(length);
+    for (let i = 0; i < length; i++) {
+      password += chars[randomBytes[i] % chars.length];
+    }
+    return password;
+  }
+
+  /**
    * Login user with email/password using Resource Owner Password Grant
    * @param {string} email - User email
    * @param {string} password - User password
@@ -159,47 +175,223 @@ class Auth0Service {
   }
 
   /**
-   * Login with Google ID token
-   * Exchanges Google token for Auth0 token using token exchange
-   * @param {string} googleToken - Google ID token from frontend
-   * @returns {Promise<{access_token: string, id_token: string, expires_in: number}>}
+   * Verify Google ID token and extract user info
+   * Uses Google's tokeninfo endpoint to validate the token
+   * @param {string} googleToken - Google ID token from frontend (credential from Google Sign-In)
+   * @returns {Promise<{email: string, name: string, picture: string, sub: string, email_verified: boolean}>}
    */
-  async loginWithGoogle(googleToken) {
+  async verifyGoogleToken(googleToken) {
+    try {
+      // Verify the Google ID token using Google's tokeninfo endpoint
+      const response = await axios.get(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${googleToken}`
+      );
+
+      const { email, name, picture, sub, email_verified, aud } = response.data;
+
+      // Verify the token was issued for our app
+      const expectedClientId = process.env.GOOGLE_CLIENT_ID;
+      if (expectedClientId && aud !== expectedClientId) {
+        throw new Error('Token was not issued for this application');
+      }
+
+      return {
+        email,
+        name: name || email.split('@')[0],
+        picture,
+        sub: `google-oauth2|${sub}`,
+        googleSub: sub, // Original Google sub without prefix
+        email_verified: email_verified === 'true' || email_verified === true
+      };
+    } catch (error) {
+      if (error.response) {
+        throw new Error('Invalid Google token');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create or find a Google user in Auth0 via Management API
+   * @param {object} googleUser - Verified Google user info from verifyGoogleToken
+   * @returns {Promise<{auth0Id: string, email: string, isNew: boolean}>}
+   */
+  async createOrFindGoogleUser(googleUser) {
     if (!this.isConfigured()) {
       throw new Error('Auth0 is not configured');
     }
 
-    try {
-      // Use Auth0's token exchange to convert Google token to Auth0 token
-      const response = await axios.post(`https://${this.domain}/oauth/token`, {
-        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
-        subject_token: googleToken,
-        subject_token_type: 'http://auth0.com/oauth/token-type/google-authz-code',
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        audience: this.audience,
-        scope: 'openid profile email'
-      });
+    const mgmtToken = await this.getManagementToken();
+    const auth0UserId = `google-oauth2|${googleUser.googleSub}`;
 
+    try {
+      // First, try to find existing user by Auth0 ID (Google identity)
+      const existingUser = await axios.get(
+        `https://${this.domain}/api/v2/users/${encodeURIComponent(auth0UserId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${mgmtToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Found existing Auth0 Google user:', existingUser.data.email);
       return {
-        access_token: response.data.access_token,
-        id_token: response.data.id_token,
-        expires_in: response.data.expires_in,
-        token_type: response.data.token_type
+        auth0Id: existingUser.data.user_id,
+        email: existingUser.data.email,
+        name: existingUser.data.name,
+        picture: existingUser.data.picture,
+        isNew: false
       };
     } catch (error) {
-      // If token exchange fails, try using the Google token directly with social connection
-      if (error.response?.data?.error === 'unsupported_grant_type') {
-        // Alternative: Use Authorization Code flow - redirect user
-        throw new Error('Google login requires redirect flow. Please use the standard login.');
+      // User not found by Google ID, check by email
+      if (error.response?.status === 404) {
+        try {
+          // Search for user by email
+          const searchResponse = await axios.get(
+            `https://${this.domain}/api/v2/users-by-email?email=${encodeURIComponent(googleUser.email)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${mgmtToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (searchResponse.data && searchResponse.data.length > 0) {
+            // User exists with this email (possibly from password auth)
+            // Link the Google identity to existing account
+            const existingUser = searchResponse.data[0];
+            console.log('Found existing Auth0 user by email, linking Google identity:', existingUser.email);
+
+            try {
+              await axios.post(
+                `https://${this.domain}/api/v2/users/${encodeURIComponent(existingUser.user_id)}/identities`,
+                {
+                  provider: 'google-oauth2',
+                  user_id: googleUser.googleSub
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${mgmtToken}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+              console.log('Successfully linked Google identity to existing user');
+            } catch (linkError) {
+              // Link might fail if identity already exists, that's okay
+              console.log('Could not link identity (may already exist):', linkError.response?.data?.message || linkError.message);
+            }
+
+            return {
+              auth0Id: existingUser.user_id,
+              email: existingUser.email,
+              name: existingUser.name || googleUser.name,
+              picture: existingUser.picture || googleUser.picture,
+              isNew: false
+            };
+          }
+        } catch (searchError) {
+          console.log('Email search failed:', searchError.message);
+        }
+
+        // No existing user found - create new user in the database connection
+        // Note: We can't create users directly in google-oauth2 connection via Management API
+        // So we create them in the Username-Password-Authentication connection without a password
+        // This allows them to exist in Auth0 and potentially link identities later
+        console.log('Creating new Auth0 user for Google login:', googleUser.email);
+
+        try {
+          const newUser = await axios.post(
+            `https://${this.domain}/api/v2/users`,
+            {
+              email: googleUser.email,
+              email_verified: googleUser.email_verified,
+              name: googleUser.name,
+              picture: googleUser.picture,
+              connection: this.connection, // Use the database connection
+              password: this.generateSecurePassword(), // Generate a random password they won't use
+              user_metadata: {
+                google_sub: googleUser.googleSub,
+                login_method: 'google'
+              }
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${mgmtToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          console.log('Created new Auth0 user:', newUser.data.user_id);
+          return {
+            auth0Id: newUser.data.user_id,
+            email: newUser.data.email,
+            name: newUser.data.name,
+            picture: newUser.data.picture,
+            isNew: true
+          };
+        } catch (createError) {
+          console.log('Could not create Auth0 user:', createError.response?.data?.message || createError.message);
+          // Return a pseudo-record so login can continue locally
+          return {
+            auth0Id: auth0UserId,
+            email: googleUser.email,
+            name: googleUser.name,
+            picture: googleUser.picture,
+            isNew: true,
+            localOnly: true
+          };
+        }
       }
 
-      if (error.response) {
-        const { error: authError, error_description } = error.response.data;
-        throw new Error(error_description || authError || 'Google authentication failed');
-      }
       throw error;
     }
+  }
+
+  /**
+   * Get user roles from Auth0 via Management API
+   * @param {string} auth0UserId - Auth0 user ID (e.g., 'auth0|123' or 'google-oauth2|123')
+   * @returns {Promise<string[]>} Array of role names
+   */
+  async getUserRoles(auth0UserId) {
+    if (!this.isConfigured()) {
+      return [];
+    }
+
+    try {
+      const mgmtToken = await this.getManagementToken();
+      const response = await axios.get(
+        `https://${this.domain}/api/v2/users/${encodeURIComponent(auth0UserId)}/roles`,
+        {
+          headers: {
+            Authorization: `Bearer ${mgmtToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Return array of role names
+      return response.data.map(role => role.name);
+    } catch (error) {
+      console.log('Could not fetch user roles:', error.response?.data?.message || error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get role string from Auth0 roles array
+   * @param {string[]} roles - Array of role names from Auth0
+   * @returns {string} 'admin' if user has ADMIN role, otherwise 'player'
+   */
+  getRoleFromAuth0Roles(roles) {
+    const hasAdminRole = Array.isArray(roles) && roles.some(role =>
+      typeof role === 'string' && role.toUpperCase() === 'ADMIN'
+    );
+    return hasAdminRole ? 'admin' : 'player';
   }
 
   /**

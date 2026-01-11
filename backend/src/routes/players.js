@@ -66,7 +66,7 @@ router.get('/rankings', async (req, res) => {
 
 /**
  * GET /api/players/:uuid
- * Get player by UUID
+ * Get player by UUID with full profile data
  */
 router.get('/:uuid', async (req, res) => {
   try {
@@ -78,9 +78,47 @@ router.get('/:uuid', async (req, res) => {
 
     // Get stats and history
     const stats = await Player.getStats(player.id);
-    const history = await Player.getTournamentHistory(player.id, 10);
+    const history = await Player.getTournamentHistory(player.id, 20);
 
+    // Format tournaments for frontend display
+    const tournaments = history.map(h => ({
+      id: h.tournament_id,
+      name: h.tournament_name,
+      tier: h.tournament_tier,
+      date: h.start_date,
+      year: h.start_date ? new Date(h.start_date).getFullYear() : null,
+      position: h.final_position,
+      points: h.points_earned,
+      category: h.category_code,
+      partner: h.partner_name
+    }));
+
+    // Return data formatted for frontend Profile component
     res.json({
+      // Basic player info
+      full_name: player.full_name,
+      first_name: player.first_name,
+      last_name: player.last_name,
+      age: player.birth_date ? Math.floor((Date.now() - new Date(player.birth_date)) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+      city: player.city,
+      country: player.country,
+      photo: player.photo_url,
+      ranking: player.ranking,
+      total_points: player.total_points,
+      gender: player.gender,
+      level: player.level,
+
+      // Stats
+      tournamentsPlayed: stats?.tournaments_played || 0,
+      wins: stats?.titles || 0,
+      podiums: stats?.podiums || 0,
+      matchesWon: stats?.total_wins || 0,
+      matchesLost: stats?.total_losses || 0,
+
+      // Tournament history
+      tournaments,
+
+      // Raw data for advanced use
       player,
       stats,
       tournamentHistory: history

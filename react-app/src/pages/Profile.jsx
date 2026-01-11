@@ -23,19 +23,42 @@ function Profile() {
   const [submitting, setSubmitting] = useState(false);
 
   const formatProfileData = useCallback((data, playerInfo) => {
+    const tournaments = data.tournaments || [];
+    const totalCompetitions = data.tournamentsPlayed || tournaments.length || 0;
+    const wins = data.wins || tournaments.filter(t => t.position === 1).length || 0;
+    const podiums = data.podiums || tournaments.filter(t => t.position <= 3).length || 0;
+    const totalPoints = data.total_points || playerInfo?.totalPoints || 0;
+
+    // Calculate win rate percentage
+    const winRate = totalCompetitions > 0 ? Math.round((wins / totalCompetitions) * 100) : 0;
+    // Calculate podium rate
+    const podiumRate = totalCompetitions > 0 ? Math.round((podiums / totalCompetitions) * 100) : 0;
+    // Calculate average points per tournament
+    const avgPoints = totalCompetitions > 0 ? Math.round(totalPoints / totalCompetitions) : 0;
+
+    // Sort competitions by date (most recent first)
+    const sortedCompetitions = [...tournaments].sort((a, b) => {
+      const dateA = a.date || a.year || 0;
+      const dateB = b.date || b.year || 0;
+      return dateB - dateA;
+    });
+
     return {
       name: data.full_name || playerInfo?.name || 'Jogador',
       age: data.age || '-',
       category: 'BT 4500',
       city: data.city || 'Portugal',
       ranking: data.ranking || playerInfo?.ranking || '-',
-      photo: data.photo || '/images/default-avatar.png',
-      competitions: data.tournaments || [],
+      photo: data.photo || null,
+      competitions: sortedCompetitions,
       stats: {
-        totalCompetitions: data.tournamentsPlayed || 0,
-        wins: data.wins || 0,
-        podiums: data.podiums || 0,
-        totalPoints: data.total_points || playerInfo?.totalPoints || 0
+        totalCompetitions,
+        wins,
+        podiums,
+        totalPoints,
+        winRate,
+        podiumRate,
+        avgPoints
       }
     };
   }, []);
@@ -364,14 +387,44 @@ function Profile() {
     category: 'BT 4500',
     city: 'Portugal',
     ranking: '-',
-    photo: '/images/default-avatar.png',
+    photo: null,
     competitions: [],
     stats: {
       totalCompetitions: 0,
       wins: 0,
       podiums: 0,
-      totalPoints: 0
+      totalPoints: 0,
+      winRate: 0,
+      podiumRate: 0,
+      avgPoints: 0
     }
+  };
+
+  // Helper function to get position class for podium styling
+  const getPositionClass = (position) => {
+    if (position === 1) return styles.positionGold;
+    if (position === 2) return styles.positionSilver;
+    if (position === 3) return styles.positionBronze;
+    return '';
+  };
+
+  // Helper function to get position label for accessibility
+  const getPositionLabel = (position) => {
+    if (position === 1) return 'Primeiro lugar';
+    if (position === 2) return 'Segundo lugar';
+    if (position === 3) return 'Terceiro lugar';
+    return `${position} lugar`;
+  };
+
+  // Helper to get tier display info
+  const getTierBadge = (tier) => {
+    const tierMap = {
+      'major': { label: 'Major', className: styles.tierMajor },
+      'challenger': { label: 'Challenger', className: styles.tierChallenger },
+      'regular': { label: 'Regular', className: styles.tierRegular },
+      'open': { label: 'Open', className: styles.tierOpen }
+    };
+    return tierMap[tier?.toLowerCase()] || { label: tier || '', className: '' };
   };
 
   // Authenticated profile view
@@ -395,11 +448,15 @@ function Profile() {
             <div className={styles.photoSection}>
               <div className={styles.photoFrame}>
                 <img
-                  src={displayProfile.photo}
+                  src={displayProfile.photo || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="48" fill="%23e0e0e0"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23bdbdbd"/%3E%3Cellipse cx="50" cy="85" rx="28" ry="22" fill="%23bdbdbd"/%3E%3C/svg%3E'}
                   alt={displayProfile.name}
                   className={styles.profilePhoto}
                   onError={(e) => {
-                    e.target.src = '/images/default-avatar.png';
+                    // Prevent infinite loop by only setting fallback once
+                    if (!e.target.dataset.fallback) {
+                      e.target.dataset.fallback = 'true';
+                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="48" fill="%23e0e0e0"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23bdbdbd"/%3E%3Cellipse cx="50" cy="85" rx="28" ry="22" fill="%23bdbdbd"/%3E%3C/svg%3E';
+                    }
                   }}
                 />
               </div>
@@ -429,58 +486,106 @@ function Profile() {
           </div>
 
           {/* Statistics Section */}
-          <div className={styles.statsSection}>
-            <h3 className={styles.sectionTitle}>ESTATÍSTICAS</h3>
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <span className={styles.statNumber}>{displayProfile.stats.totalCompetitions}</span>
-                <span className={styles.statLabel}>Competições</span>
+          <section className={styles.statsSection} aria-labelledby="stats-title">
+            <h3 id="stats-title" className={styles.sectionTitle}>ESTATISTICAS DA TEMPORADA</h3>
+            <div className={styles.statsGrid} role="list" aria-label="Estatisticas do jogador">
+              <div className={styles.statCard} role="listitem">
+                <span className={styles.statNumber} aria-label={`${displayProfile.stats.totalCompetitions} competicoes`}>
+                  {displayProfile.stats.totalCompetitions}
+                </span>
+                <span className={styles.statLabel}>Torneios</span>
               </div>
-              <div className={styles.statCard}>
-                <span className={styles.statNumber}>{displayProfile.stats.wins}</span>
-                <span className={styles.statLabel}>Vitórias</span>
+              <div className={styles.statCard} role="listitem">
+                <span className={styles.statNumber} aria-label={`${displayProfile.stats.wins} vitorias`}>
+                  {displayProfile.stats.wins}
+                </span>
+                <span className={styles.statLabel}>Vitorias</span>
+                {displayProfile.stats.totalCompetitions > 0 && (
+                  <span className={styles.statSubtext}>{displayProfile.stats.winRate}% taxa</span>
+                )}
               </div>
-              <div className={styles.statCard}>
-                <span className={styles.statNumber}>{displayProfile.stats.podiums}</span>
-                <span className={styles.statLabel}>Pódios</span>
+              <div className={styles.statCard} role="listitem">
+                <span className={styles.statNumber} aria-label={`${displayProfile.stats.podiums} podios`}>
+                  {displayProfile.stats.podiums}
+                </span>
+                <span className={styles.statLabel}>Podios</span>
+                {displayProfile.stats.totalCompetitions > 0 && (
+                  <span className={styles.statSubtext}>{displayProfile.stats.podiumRate}% taxa</span>
+                )}
               </div>
-              <div className={styles.statCard}>
-                <span className={styles.statNumber}>{displayProfile.stats.totalPoints}</span>
-                <span className={styles.statLabel}>Pontos</span>
+              <div className={`${styles.statCard} ${styles.statCardHighlight}`} role="listitem">
+                <span className={styles.statNumber} aria-label={`${displayProfile.stats.totalPoints} pontos totais`}>
+                  {displayProfile.stats.totalPoints}
+                </span>
+                <span className={styles.statLabel}>Pontos Totais</span>
+                {displayProfile.stats.totalCompetitions > 0 && (
+                  <span className={styles.statSubtext}>{displayProfile.stats.avgPoints} media/torneio</span>
+                )}
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Competition History */}
-          <div className={styles.historySection}>
-            <h3 className={styles.sectionTitle}>HISTÓRICO DE COMPETIÇÕES</h3>
+          <section className={styles.historySection} aria-labelledby="history-title">
+            <h3 id="history-title" className={styles.sectionTitle}>HISTORICO DE TORNEIOS</h3>
             {displayProfile.competitions.length > 0 ? (
-              <div className={styles.competitionsList}>
-                {displayProfile.competitions.map((comp, index) => (
-                  <div key={comp.id || index} className={styles.competitionCard}>
-                    <div className={styles.compHeader}>
-                      <span className={styles.compName}>{comp.name}</span>
-                      <span className={styles.compYear}>{comp.year}</span>
-                    </div>
-                    <div className={styles.compDetails}>
-                      <div className={styles.positionBadge}>
-                        <span className={styles.positionLabel}>Posição</span>
-                        <span className={styles.positionNumber}>{comp.position}º</span>
+              <div className={styles.competitionsList} role="list" aria-label="Lista de torneios">
+                {displayProfile.competitions.map((comp, index) => {
+                  const tierInfo = getTierBadge(comp.tier || comp.type);
+                  const isPodium = comp.position <= 3;
+
+                  return (
+                    <article
+                      key={comp.id || index}
+                      className={`${styles.competitionCard} ${isPodium ? styles.podiumCard : ''}`}
+                      role="listitem"
+                      aria-label={`${comp.name}, ${getPositionLabel(comp.position)}, ${comp.points} pontos`}
+                    >
+                      <div className={styles.compHeader}>
+                        <div className={styles.compTitleRow}>
+                          <span className={styles.compName}>{comp.name}</span>
+                          {tierInfo.label && (
+                            <span className={`${styles.tierBadge} ${tierInfo.className}`}>
+                              {tierInfo.label}
+                            </span>
+                          )}
+                        </div>
+                        <span className={styles.compDate}>
+                          {comp.date || comp.year}
+                        </span>
                       </div>
-                      <div className={styles.pointsBadge}>
-                        <span className={styles.pointsValue}>{comp.points}</span>
-                        <span className={styles.pointsLabel}>pontos</span>
+                      <div className={styles.compDetails}>
+                        <div className={`${styles.positionBadge} ${getPositionClass(comp.position)}`}>
+                          {isPodium && (
+                            <span className={styles.podiumIcon} aria-hidden="true">
+                              {comp.position === 1 && '1'}
+                              {comp.position === 2 && '2'}
+                              {comp.position === 3 && '3'}
+                            </span>
+                          )}
+                          <div className={styles.positionContent}>
+                            <span className={styles.positionLabel}>Posicao</span>
+                            <span className={styles.positionNumber}>{comp.position}o</span>
+                          </div>
+                        </div>
+                        <div className={styles.pointsBadge}>
+                          <span className={styles.pointsValue}>{comp.points}</span>
+                          <span className={styles.pointsLabel}>pontos</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className={styles.noCompetitions}>
-                <p>Ainda não participou em nenhuma competição.</p>
+                <p>Ainda nao participou em nenhum torneio esta temporada.</p>
+                <p className={styles.noCompetitionsHint}>
+                  Inscreva-se num torneio para comecar a acumular pontos!
+                </p>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </div>
     </div>
