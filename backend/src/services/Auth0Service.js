@@ -159,6 +159,50 @@ class Auth0Service {
   }
 
   /**
+   * Login with Google ID token
+   * Exchanges Google token for Auth0 token using token exchange
+   * @param {string} googleToken - Google ID token from frontend
+   * @returns {Promise<{access_token: string, id_token: string, expires_in: number}>}
+   */
+  async loginWithGoogle(googleToken) {
+    if (!this.isConfigured()) {
+      throw new Error('Auth0 is not configured');
+    }
+
+    try {
+      // Use Auth0's token exchange to convert Google token to Auth0 token
+      const response = await axios.post(`https://${this.domain}/oauth/token`, {
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        subject_token: googleToken,
+        subject_token_type: 'http://auth0.com/oauth/token-type/google-authz-code',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        audience: this.audience,
+        scope: 'openid profile email'
+      });
+
+      return {
+        access_token: response.data.access_token,
+        id_token: response.data.id_token,
+        expires_in: response.data.expires_in,
+        token_type: response.data.token_type
+      };
+    } catch (error) {
+      // If token exchange fails, try using the Google token directly with social connection
+      if (error.response?.data?.error === 'unsupported_grant_type') {
+        // Alternative: Use Authorization Code flow - redirect user
+        throw new Error('Google login requires redirect flow. Please use the standard login.');
+      }
+
+      if (error.response) {
+        const { error: authError, error_description } = error.response.data;
+        throw new Error(error_description || authError || 'Google authentication failed');
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get user info from access token
    * @param {string} accessToken - Auth0 access token
    * @returns {Promise<object>}
@@ -239,6 +283,52 @@ class Auth0Service {
         }
       );
     });
+  }
+
+  /**
+   * Extract role from a decoded Auth0 token
+   * Auth0 roles are added via Actions/Rules with a custom namespace
+   * @param {object} decoded - Decoded JWT payload
+   * @returns {string} 'admin' if user has ADMIN role, otherwise 'player'
+   */
+  extractRoleFromToken(decoded) {
+    const rolesNamespace = process.env.AUTH0_ROLES_NAMESPACE || 'https://bt4500.com/roles';
+
+    // Log token claims for debugging
+    console.log('Auth0 Token Claims:', JSON.stringify(decoded, null, 2));
+    console.log('Looking for roles in namespace:', rolesNamespace);
+
+    // Try to get roles from custom namespace claim
+    const roles = decoded[rolesNamespace] ||
+                  decoded['roles'] ||
+                  decoded['https://bt4500.com/roles'] ||
+                  [];
+
+    console.log('Found roles:', roles);
+
+    // Check if user has ADMIN role (case-insensitive)
+    const hasAdminRole = Array.isArray(roles) && roles.some(role =>
+      typeof role === 'string' && role.toUpperCase() === 'ADMIN'
+    );
+
+    const finalRole = hasAdminRole ? 'admin' : 'player';
+    console.log('Extracted role:', finalRole);
+
+    return finalRole;
+  }
+
+  /**
+   * Decode a token without verification (to extract claims)
+   * @param {string} token - JWT token
+   * @returns {object|null} Decoded payload or null
+   */
+  decodeToken(token) {
+    const jwt = require('jsonwebtoken');
+    try {
+      return jwt.decode(token);
+    } catch (e) {
+      return null;
+    }
   }
 }
 

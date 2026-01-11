@@ -110,16 +110,27 @@ router.post('/login', [
       try {
         const auth0Result = await Auth0Service.login(email, password);
 
+        // Decode token to extract role from Auth0
+        const decoded = Auth0Service.decodeToken(auth0Result.access_token);
+        const auth0Role = decoded ? Auth0Service.extractRoleFromToken(decoded) : 'player';
+
         // Find or create user in local database
         let user = await User.findByEmail(email);
 
         if (!user) {
-          // Create user from Auth0
+          // Create user from Auth0 with role from token
           user = await User.create({
             email: email,
             password: null, // No local password for Auth0 users
-            role: 'player'
+            role: auth0Role,
+            auth0Id: decoded?.sub
           });
+        } else {
+          // Sync role from Auth0 if it changed
+          if (user.role !== auth0Role) {
+            await User.update(user.id, { role: auth0Role });
+            user.role = auth0Role;
+          }
         }
 
         const player = await User.getLinkedPlayer(user.id);
@@ -230,6 +241,80 @@ router.get('/config', (req, res) => {
     auth0Enabled: Auth0Service.isConfigured(),
     auth0Domain: Auth0Service.isConfigured() ? process.env.AUTH0_DOMAIN : null
   });
+});
+
+/**
+ * POST /api/auth/google
+ * Login/Register with Google OAuth token
+ */
+router.post('/google', [
+  body('token').notEmpty().withMessage('Google token is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token } = req.body;
+
+    // Verify Google token with Auth0
+    if (!Auth0Service.isConfigured()) {
+      return res.status(400).json({ error: 'Social login not configured' });
+    }
+
+    try {
+      // Exchange Google token for Auth0 token
+      const auth0Result = await Auth0Service.loginWithGoogle(token);
+
+      // Decode token to extract user info and role
+      const decoded = Auth0Service.decodeToken(auth0Result.access_token);
+      const auth0Role = decoded ? Auth0Service.extractRoleFromToken(decoded) : 'player';
+      const email = decoded?.email || decoded?.sub;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Could not get email from Google account' });
+      }
+
+      // Find or create user in local database
+      let user = await User.findByEmail(email);
+
+      if (!user) {
+        // Create user from Google login
+        user = await User.create({
+          email: email,
+          password: null, // No local password for social login users
+          role: auth0Role,
+          auth0Id: decoded?.sub
+        });
+      } else {
+        // Sync role from Auth0 if it changed
+        if (user.role !== auth0Role || !user.auth0_id) {
+          await User.update(user.id, {
+            role: auth0Role,
+            auth0Id: decoded?.sub
+          });
+          user.role = auth0Role;
+        }
+      }
+
+      const player = await User.getLinkedPlayer(user.id);
+
+      res.json({
+        message: 'Login successful',
+        user: { id: user.uuid, email: user.email, role: user.role },
+        player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking } : null,
+        token: auth0Result.access_token,
+        tokenType: 'auth0'
+      });
+    } catch (googleError) {
+      console.error('Google login failed:', googleError.message);
+      return res.status(401).json({ error: googleError.message || 'Google login failed' });
+    }
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ error: 'Google login failed' });
+  }
 });
 
 /**

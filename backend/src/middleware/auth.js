@@ -7,9 +7,31 @@ const JWT_SECRET = process.env.JWT_SECRET || 'bt4500-dev-secret';
 // Auth0 configuration
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE;
+// Custom namespace for Auth0 roles (must match the namespace in your Auth0 Action)
+const AUTH0_ROLES_NAMESPACE = process.env.AUTH0_ROLES_NAMESPACE || 'https://bt4500.com/roles';
 
 // Check if Auth0 is configured
 const isAuth0Enabled = () => !!(AUTH0_DOMAIN && AUTH0_AUDIENCE);
+
+/**
+ * Extract role from Auth0 token
+ * Auth0 roles are added via Actions/Rules with a custom namespace
+ * Returns 'admin' if user has ADMIN role, otherwise 'player'
+ */
+function extractAuth0Role(decoded) {
+  // Try to get roles from custom namespace claim
+  const roles = decoded[AUTH0_ROLES_NAMESPACE] ||
+                decoded['roles'] ||
+                decoded['https://bt4500.com/roles'] ||
+                [];
+
+  // Check if user has ADMIN role (case-insensitive)
+  const hasAdminRole = roles.some(role =>
+    role.toUpperCase() === 'ADMIN'
+  );
+
+  return hasAdminRole ? 'admin' : 'player';
+}
 
 // JWKS client for Auth0 token verification (lazy-loaded)
 let jwksClientInstance = null;
@@ -95,23 +117,31 @@ async function authenticate(req, res, next) {
       try {
         decoded = await verifyAuth0Token(token);
 
+        // Extract role from Auth0 token
+        const auth0Role = extractAuth0Role(decoded);
+
         // Find or create user from Auth0 token
         const email = decoded.email || decoded.sub;
         let user = await User.findByEmail(email);
 
         if (!user) {
-          // Auto-create user from Auth0
+          // Auto-create user from Auth0 with role from token
           user = await User.create({
             email: email,
             password: null, // No password for Auth0 users
-            role: 'player',
+            role: auth0Role,
             auth0Id: decoded.sub
           });
-        }
-
-        // Update auth0Id if not set
-        if (!user.auth0_id && decoded.sub) {
-          await User.update(user.id, { auth0Id: decoded.sub });
+        } else {
+          // Sync role from Auth0 if it changed
+          const needsUpdate = (!user.auth0_id && decoded.sub) || (user.role !== auth0Role);
+          if (needsUpdate) {
+            await User.update(user.id, {
+              auth0Id: decoded.sub,
+              role: auth0Role
+            });
+            user.role = auth0Role; // Update in-memory user object
+          }
         }
 
         req.user = user;

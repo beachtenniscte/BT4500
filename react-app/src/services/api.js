@@ -127,6 +127,22 @@ const apiService = {
   },
 
   /**
+   * Login with Google
+   * POST /auth/google
+   * @param {string} credential - Google ID token from Google Sign-In
+   */
+  loginWithGoogle: async (credential) => {
+    const response = await fetchAPI('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ token: credential }),
+    });
+    if (response.token) {
+      setAuthToken(response.token, response.tokenType || 'auth0');
+    }
+    return response;
+  },
+
+  /**
    * Get token type (local or auth0)
    */
   getTokenType,
@@ -141,11 +157,18 @@ const apiService = {
   /**
    * Get current user
    * GET /auth/me
+   * Returns null if not authenticated (no error logged)
    */
   getCurrentUser: async () => {
+    const token = getAuthToken();
+    if (!token) {
+      return null; // No token = not logged in, no need to call API
+    }
     try {
       return await fetchAPI('/auth/me');
     } catch (error) {
+      // Token might be expired/invalid - clear it
+      removeAuthToken();
       return null;
     }
   },

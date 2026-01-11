@@ -1,13 +1,17 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
 import styles from './Profile.module.css';
+
+// Google Client ID - should match the one configured in Auth0
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function Profile() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [googleLoaded, setGoogleLoaded] = useState(false);
 
   // Login form state
   const [loginMode, setLoginMode] = useState('login'); // 'login' or 'register'
@@ -17,6 +21,100 @@ function Profile() {
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const formatProfileData = useCallback((data, playerInfo) => {
+    return {
+      name: data.full_name || playerInfo?.name || 'Jogador',
+      age: data.age || '-',
+      category: 'BT 4500',
+      city: data.city || 'Portugal',
+      ranking: data.ranking || playerInfo?.ranking || '-',
+      photo: data.photo || '/images/default-avatar.png',
+      competitions: data.tournaments || [],
+      stats: {
+        totalCompetitions: data.tournamentsPlayed || 0,
+        wins: data.wins || 0,
+        podiums: data.podiums || 0,
+        totalPoints: data.total_points || playerInfo?.totalPoints || 0
+      }
+    };
+  }, []);
+
+  // Handle Google Sign-In response
+  const handleGoogleResponse = useCallback(async (response) => {
+    if (response.credential) {
+      setSubmitting(true);
+      setError('');
+      try {
+        const result = await apiService.loginWithGoogle(response.credential);
+        if (result.token) {
+          setIsAuthenticated(true);
+          setUser(result.user);
+          if (result.player) {
+            const profileData = await apiService.getProfile(result.player.id);
+            if (profileData) {
+              setProfile(formatProfileData(profileData, result.player));
+            }
+          }
+        }
+      } catch (err) {
+        setError(err.message || 'Google login failed. Please try again.');
+      } finally {
+        setSubmitting(false);
+      }
+    }
+  }, [formatProfileData]);
+
+  // Load Google Identity Services script
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      console.log('Google Client ID not configured');
+      return;
+    }
+
+    // Check if script already loaded
+    if (window.google?.accounts?.id) {
+      setGoogleLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
+  // Initialize Google Sign-In when script is loaded
+  useEffect(() => {
+    if (googleLoaded && GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+    }
+  }, [googleLoaded, handleGoogleResponse]);
+
+  // Render Google button when ready
+  useEffect(() => {
+    if (googleLoaded && GOOGLE_CLIENT_ID && !isAuthenticated && window.google?.accounts?.id) {
+      const buttonContainer = document.getElementById('google-signin-button');
+      if (buttonContainer) {
+        buttonContainer.innerHTML = ''; // Clear previous button
+        window.google.accounts.id.renderButton(buttonContainer, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          width: 280,
+        });
+      }
+    }
+  }, [googleLoaded, isAuthenticated, loginMode]);
 
   useEffect(() => {
     checkAuth();
@@ -45,24 +143,6 @@ function Profile() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatProfileData = (data, playerInfo) => {
-    return {
-      name: data.full_name || playerInfo?.name || 'Jogador',
-      age: data.age || '-',
-      category: 'BT 4500',
-      city: data.city || 'Portugal',
-      ranking: data.ranking || playerInfo?.ranking || '-',
-      photo: data.photo || '/images/default-avatar.png',
-      competitions: data.tournaments || [],
-      stats: {
-        totalCompetitions: data.tournamentsPlayed || 0,
-        wins: data.wins || 0,
-        podiums: data.podiums || 0,
-        totalPoints: data.total_points || playerInfo?.totalPoints || 0
-      }
-    };
   };
 
   const handleLogin = async (e) => {
@@ -234,6 +314,16 @@ function Profile() {
                     : (loginMode === 'login' ? 'Entrar' : 'Criar Conta')}
                 </button>
               </form>
+
+              {/* Google Sign-In Button */}
+              {GOOGLE_CLIENT_ID && loginMode === 'login' && (
+                <div className={styles.socialLogin}>
+                  <div className={styles.divider}>
+                    <span>ou</span>
+                  </div>
+                  <div id="google-signin-button" className={styles.googleButton}></div>
+                </div>
+              )}
 
               <div className={styles.switchMode}>
                 {loginMode === 'login' ? (
