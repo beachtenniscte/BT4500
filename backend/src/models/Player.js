@@ -203,6 +203,51 @@ class Player {
     return players.length;
   }
 
+  /**
+   * Get rankings by category gender (M, F, MX)
+   * Rankings are calculated from player_tournament_results based on category gender
+   * @param {string} categoryGender - Category gender: 'M', 'F', or 'MX'
+   * @param {number} limit - Maximum number of results
+   * @returns {Promise<Array>} Ranked players with points for that category gender
+   */
+  static async getRankingsByCategoryGender(categoryGender, limit = 50) {
+    let query = `
+      SELECT
+        p.id,
+        p.uuid,
+        p.first_name,
+        p.last_name,
+        p.full_name,
+        p.gender,
+        p.city,
+        p.country,
+        p.photo_url,
+        p.level,
+        SUM(ptr.points_earned) as category_points,
+        COUNT(DISTINCT ptr.tournament_id) as tournaments_played
+      FROM players p
+      INNER JOIN player_tournament_results ptr ON p.id = ptr.player_id
+      INNER JOIN categories c ON ptr.category_id = c.id
+      WHERE p.active = 1
+    `;
+    const params = [];
+
+    if (categoryGender) {
+      query += ` AND c.gender = ?`;
+      params.push(categoryGender);
+    }
+
+    query += `
+      GROUP BY p.id, p.uuid, p.first_name, p.last_name, p.full_name, p.gender, p.city, p.country, p.photo_url, p.level
+      ORDER BY category_points DESC
+      OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+    `;
+    params.push(parseInt(limit));
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  }
+
   static async getStats(playerId) {
     const [stats] = await pool.query(`
       SELECT

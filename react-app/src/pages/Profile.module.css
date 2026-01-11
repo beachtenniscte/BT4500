@@ -652,3 +652,93 @@
     text-align: center;
   }
 }
+
+/* Categories List - for tournaments with multiple categories */
+.categoriesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.categoryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  border-left: 3px solid #4CA69E;
+}
+
+.categoryName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.categoryDetails {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.categoryPosition {
+  font-size: 14px;
+  font-weight: bold;
+  color: #4CA69E;
+  padding: 2px 8px;
+  background: rgba(76, 166, 158, 0.1);
+  border-radius: 4px;
+}
+
+.categoryPosition.podiumPosition {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+}
+
+.categoryPoints {
+  font-size: 14px;
+  font-weight: bold;
+  color: #774494;
+}
+
+.totalPointsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border-radius: 6px;
+  color: white;
+}
+
+.totalLabel {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.totalPoints {
+  font-size: 16px;
+  font-weight: bold;
+  font-style: italic;
+}
+
+/* Responsive adjustments for categories */
+@media (max-width: 480px) {
+  .categoryRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .categoryDetails {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

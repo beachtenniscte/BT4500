@@ -25,12 +25,15 @@ function Profile() {
   const formatProfileData = useCallback((data, playerInfo) => {
     const tournaments = data.tournaments || [];
     const totalCompetitions = data.tournamentsPlayed || tournaments.length || 0;
-    const wins = data.wins || tournaments.filter(t => t.position === 1).length || 0;
+    const titles = data.wins || tournaments.filter(t => t.position === 1).length || 0;
     const podiums = data.podiums || tournaments.filter(t => t.position <= 3).length || 0;
     const totalPoints = data.total_points || playerInfo?.totalPoints || 0;
+    const matchesWon = data.matchesWon || 0;
+    const matchesLost = data.matchesLost || 0;
+    const totalMatches = matchesWon + matchesLost;
 
-    // Calculate win rate percentage
-    const winRate = totalCompetitions > 0 ? Math.round((wins / totalCompetitions) * 100) : 0;
+    // Calculate match win rate percentage
+    const matchWinRate = totalMatches > 0 ? Math.round((matchesWon / totalMatches) * 100) : 0;
     // Calculate podium rate
     const podiumRate = totalCompetitions > 0 ? Math.round((podiums / totalCompetitions) * 100) : 0;
     // Calculate average points per tournament
@@ -53,10 +56,12 @@ function Profile() {
       competitions: sortedCompetitions,
       stats: {
         totalCompetitions,
-        wins,
+        titles,
         podiums,
         totalPoints,
-        winRate,
+        matchesWon,
+        matchesLost,
+        matchWinRate,
         podiumRate,
         avgPoints
       }
@@ -391,10 +396,12 @@ function Profile() {
     competitions: [],
     stats: {
       totalCompetitions: 0,
-      wins: 0,
+      titles: 0,
       podiums: 0,
       totalPoints: 0,
-      winRate: 0,
+      matchesWon: 0,
+      matchesLost: 0,
+      matchWinRate: 0,
       podiumRate: 0,
       avgPoints: 0
     }
@@ -406,14 +413,6 @@ function Profile() {
     if (position === 2) return styles.positionSilver;
     if (position === 3) return styles.positionBronze;
     return '';
-  };
-
-  // Helper function to get position label for accessibility
-  const getPositionLabel = (position) => {
-    if (position === 1) return 'Primeiro lugar';
-    if (position === 2) return 'Segundo lugar';
-    if (position === 3) return 'Terceiro lugar';
-    return `${position} lugar`;
   };
 
   // Helper to get tier display info
@@ -496,12 +495,12 @@ function Profile() {
                 <span className={styles.statLabel}>Torneios</span>
               </div>
               <div className={styles.statCard} role="listitem">
-                <span className={styles.statNumber} aria-label={`${displayProfile.stats.wins} vitorias`}>
-                  {displayProfile.stats.wins}
+                <span className={styles.statNumber} aria-label={`${displayProfile.stats.matchesWon} jogos ganhos`}>
+                  {displayProfile.stats.matchesWon}
                 </span>
-                <span className={styles.statLabel}>Vitorias</span>
-                {displayProfile.stats.totalCompetitions > 0 && (
-                  <span className={styles.statSubtext}>{displayProfile.stats.winRate}% taxa</span>
+                <span className={styles.statLabel}>Jogos Ganhos</span>
+                {(displayProfile.stats.matchesWon + displayProfile.stats.matchesLost) > 0 && (
+                  <span className={styles.statSubtext}>{displayProfile.stats.matchWinRate}% taxa</span>
                 )}
               </div>
               <div className={styles.statCard} role="listitem">
@@ -532,14 +531,15 @@ function Profile() {
               <div className={styles.competitionsList} role="list" aria-label="Lista de torneios">
                 {displayProfile.competitions.map((comp, index) => {
                   const tierInfo = getTierBadge(comp.tier || comp.type);
-                  const isPodium = comp.position <= 3;
+                  // Check if any category has a podium finish
+                  const hasPodium = comp.categories?.some(cat => cat.position <= 3) || comp.position <= 3;
 
                   return (
                     <article
                       key={comp.id || index}
-                      className={`${styles.competitionCard} ${isPodium ? styles.podiumCard : ''}`}
+                      className={`${styles.competitionCard} ${hasPodium ? styles.podiumCard : ''}`}
                       role="listitem"
-                      aria-label={`${comp.name}, ${getPositionLabel(comp.position)}, ${comp.points} pontos`}
+                      aria-label={`${comp.name}, ${comp.totalPoints || comp.points} pontos`}
                     >
                       <div className={styles.compHeader}>
                         <div className={styles.compTitleRow}>
@@ -551,28 +551,53 @@ function Profile() {
                           )}
                         </div>
                         <span className={styles.compDate}>
-                          {comp.date || comp.year}
+                          {comp.date ? new Date(comp.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }) : comp.year}
                         </span>
                       </div>
-                      <div className={styles.compDetails}>
-                        <div className={`${styles.positionBadge} ${getPositionClass(comp.position)}`}>
-                          {isPodium && (
-                            <span className={styles.podiumIcon} aria-hidden="true">
-                              {comp.position === 1 && '1'}
-                              {comp.position === 2 && '2'}
-                              {comp.position === 3 && '3'}
-                            </span>
-                          )}
-                          <div className={styles.positionContent}>
-                            <span className={styles.positionLabel}>Posicao</span>
-                            <span className={styles.positionNumber}>{comp.position}o</span>
+
+                      {/* Categories list - new format with multiple categories per tournament */}
+                      {comp.categories && comp.categories.length > 0 ? (
+                        <div className={styles.categoriesList}>
+                          {comp.categories.map((cat, catIndex) => {
+                            const isPodium = cat.position <= 3;
+                            return (
+                              <div key={catIndex} className={styles.categoryRow}>
+                                <span className={styles.categoryName}>{cat.category}</span>
+                                <div className={styles.categoryDetails}>
+                                  <span className={`${styles.categoryPosition} ${isPodium ? styles.podiumPosition : ''}`}>
+                                    {cat.position}o
+                                  </span>
+                                  <span className={styles.categoryPoints}>{cat.points} pts</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {/* Total points row */}
+                          <div className={styles.totalPointsRow}>
+                            <span className={styles.totalLabel}>Total</span>
+                            <span className={styles.totalPoints}>{comp.totalPoints} pontos</span>
                           </div>
                         </div>
-                        <div className={styles.pointsBadge}>
-                          <span className={styles.pointsValue}>{comp.points}</span>
-                          <span className={styles.pointsLabel}>pontos</span>
+                      ) : (
+                        /* Fallback for old format without categories array */
+                        <div className={styles.compDetails}>
+                          <div className={`${styles.positionBadge} ${getPositionClass(comp.position)}`}>
+                            {comp.position <= 3 && (
+                              <span className={styles.podiumIcon} aria-hidden="true">
+                                {comp.position}
+                              </span>
+                            )}
+                            <div className={styles.positionContent}>
+                              <span className={styles.positionLabel}>Posicao</span>
+                              <span className={styles.positionNumber}>{comp.position}o</span>
+                            </div>
+                          </div>
+                          <div className={styles.pointsBadge}>
+                            <span className={styles.pointsValue}>{comp.points}</span>
+                            <span className={styles.pointsLabel}>pontos</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </article>
                   );
                 })}

@@ -348,3 +348,61 @@ GO
 -- ========================================
 -- Schema Check & Data Reset Complete
 -- ========================================
+
+-- Migration: Add auth0_id column to users table
+-- Run this SQL in your MS SQL Server database
+
+-- Add auth0_id column if it doesn't exist
+IF NOT EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'auth0_id'
+)
+BEGIN
+    ALTER TABLE users ADD auth0_id NVARCHAR(255) NULL;
+    PRINT 'Added auth0_id column to users table';
+END
+ELSE
+BEGIN
+    PRINT 'auth0_id column already exists';
+END
+GO
+
+-- Create index for faster lookups by auth0_id
+IF NOT EXISTS (
+    SELECT * FROM sys.indexes
+    WHERE name = 'IX_users_auth0_id' AND object_id = OBJECT_ID('users')
+)
+BEGIN
+    CREATE INDEX IX_users_auth0_id ON users(auth0_id);
+    PRINT 'Created index IX_users_auth0_id';
+END
+GO
+
+-- Migration: Add email column to players table for user-player linking
+-- Run this SQL in your MS SQL Server database
+
+-- Add email column if it doesn't exist
+IF NOT EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'players' AND COLUMN_NAME = 'email'
+)
+BEGIN
+    ALTER TABLE players ADD email NVARCHAR(255) NULL;
+    PRINT 'Added email column to players table';
+END
+ELSE
+BEGIN
+    PRINT 'email column already exists in players table';
+END
+GO
+
+-- Create index for faster lookups by email (for user-player matching)
+IF NOT EXISTS (
+    SELECT * FROM sys.indexes
+    WHERE name = 'IX_players_email' AND object_id = OBJECT_ID('players')
+)
+BEGIN
+    CREATE INDEX IX_players_email ON players(email);
+    PRINT 'Created index IX_players_email';
+END
+GO

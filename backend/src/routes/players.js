@@ -34,23 +34,20 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/players/rankings
- * Get player rankings
+ * Get player rankings by category gender (M, F, MX)
+ * Rankings are based on points earned in categories of the specified gender
  */
 router.get('/rankings', async (req, res) => {
   try {
-    const { gender, level, limit = 50 } = req.query;
+    const { gender, limit = 50 } = req.query;
 
-    const players = await Player.findAll({
-      gender,
-      level: level ? parseInt(level) : null,
-      orderBy: 'total_points',
-      order: 'DESC',
-      limit: parseInt(limit)
-    });
+    // Use category-based rankings
+    const players = await Player.getRankingsByCategoryGender(gender, parseInt(limit));
 
     // Add ranking position
     const ranked = players.map((p, index) => ({
       ...p,
+      total_points: p.category_points, // Map category_points to total_points for frontend compatibility
       rankPosition: index + 1
     }));
 
@@ -78,20 +75,39 @@ router.get('/:uuid', async (req, res) => {
 
     // Get stats and history
     const stats = await Player.getStats(player.id);
-    const history = await Player.getTournamentHistory(player.id, 20);
+    const history = await Player.getTournamentHistory(player.id, 50);
 
-    // Format tournaments for frontend display
-    const tournaments = history.map(h => ({
-      id: h.tournament_id,
-      name: h.tournament_name,
-      tier: h.tournament_tier,
-      date: h.start_date,
-      year: h.start_date ? new Date(h.start_date).getFullYear() : null,
-      position: h.final_position,
-      points: h.points_earned,
-      category: h.category_code,
-      partner: h.partner_name
-    }));
+    // Group tournament results by tournament (one tournament can have multiple categories)
+    const tournamentMap = new Map();
+    for (const h of history) {
+      const key = h.tournament_id;
+      if (!tournamentMap.has(key)) {
+        tournamentMap.set(key, {
+          id: h.tournament_id,
+          name: h.tournament_name,
+          tier: h.tournament_tier,
+          date: h.start_date,
+          year: h.start_date ? new Date(h.start_date).getFullYear() : null,
+          categories: [],
+          totalPoints: 0
+        });
+      }
+      const tournament = tournamentMap.get(key);
+      tournament.categories.push({
+        category: h.category_code,
+        position: h.final_position,
+        points: h.points_earned,
+        partner: h.partner_name
+      });
+      tournament.totalPoints += h.points_earned || 0;
+    }
+
+    // Convert map to array and sort by date (most recent first)
+    const tournaments = Array.from(tournamentMap.values()).sort((a, b) => {
+      const dateA = new Date(a.date || 0);
+      const dateB = new Date(b.date || 0);
+      return dateB - dateA;
+    });
 
     // Return data formatted for frontend Profile component
     res.json({
