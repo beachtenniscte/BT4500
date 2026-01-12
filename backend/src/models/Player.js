@@ -177,6 +177,18 @@ class Player {
     );
   }
 
+  /**
+   * Update a player's email address
+   * @param {number} playerId - The player's ID
+   * @param {string|null} email - The email to set (or null to clear)
+   */
+  static async updateEmail(playerId, email) {
+    await pool.query(
+      `UPDATE players SET email = ? WHERE id = ?`,
+      [email, playerId]
+    );
+  }
+
   static async recalculateRankings(categoryGender = null) {
     let query = `
       SELECT id, total_points, gender FROM players

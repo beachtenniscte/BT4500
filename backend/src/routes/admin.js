@@ -478,4 +478,50 @@ router.delete('/tournaments/:id', authenticate, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/admin/players/:uuid/email
+ * Link an email to a player for automatic user-player association
+ * When a user logs in with this email, they will be linked to this player
+ */
+router.put('/players/:uuid/email', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const player = await Player.findByUuid(req.params.uuid);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // If email is null or empty, clear the email
+    const emailToSet = email && email.trim() ? email.trim().toLowerCase() : null;
+
+    // Check if email is already used by another player
+    if (emailToSet) {
+      const existingPlayer = await Player.findByEmail(emailToSet);
+      if (existingPlayer && existingPlayer.id !== player.id) {
+        return res.status(400).json({
+          error: `Este email ja esta associado ao jogador: ${existingPlayer.full_name}`
+        });
+      }
+    }
+
+    // Update the player's email
+    await Player.updateEmail(player.id, emailToSet);
+
+    res.json({
+      message: emailToSet
+        ? `Email "${emailToSet}" associado ao jogador ${player.full_name}`
+        : `Email removido do jogador ${player.full_name}`,
+      player: {
+        uuid: player.uuid,
+        name: player.full_name,
+        email: emailToSet
+      }
+    });
+  } catch (error) {
+    console.error('Link player email error:', error);
+    res.status(500).json({ error: 'Failed to link email to player' });
+  }
+});
+
 module.exports = router;

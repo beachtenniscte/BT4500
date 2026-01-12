@@ -631,6 +631,31 @@ const apiService = {
       return false;
     }
   },
+
+  /**
+   * Get all players (for admin tools)
+   * GET /players
+   */
+  getAllPlayers: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      return await fetchAPI(`/players${query ? `?${query}` : ''}`);
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Link an email to a player for automatic user-player association
+   * PUT /admin/players/:uuid/email
+   */
+  linkPlayerEmail: async (playerUuid, email) => {
+    return await fetchAPI(`/admin/players/${playerUuid}/email`, {
+      method: 'PUT',
+      body: JSON.stringify({ email }),
+    });
+  },
 };
 
 /**
