@@ -204,6 +204,83 @@ class Tournament {
     return rows;
   }
 
+  /**
+   * Get tournament winners (teams that finished in 1st place per category)
+   */
+  static async getWinners(tournamentId) {
+    const [winners] = await pool.query(`
+      SELECT
+        c.code as category_code,
+        c.name as category_name,
+        c.gender,
+        p1.full_name as player1_name,
+        p1.photo_url as player1_photo,
+        p2.full_name as player2_name,
+        p2.photo_url as player2_photo
+      FROM tournament_registrations tr
+      JOIN tournament_categories tc ON tr.tournament_category_id = tc.id
+      JOIN categories c ON tc.category_id = c.id
+      JOIN teams t ON tr.team_id = t.id
+      JOIN players p1 ON t.player1_id = p1.id
+      JOIN players p2 ON t.player2_id = p2.id
+      WHERE tr.tournament_id = ? AND tr.final_position = 1
+      ORDER BY c.gender, c.level
+    `, [tournamentId]);
+    return winners;
+  }
+
+  /**
+   * Get matches grouped by round for a tournament
+   */
+  static async getMatchesByRound(tournamentId, categoryCode = null) {
+    let query = `
+      SELECT
+        m.*,
+        m.round,
+        m.round_order,
+        CONCAT(p1a.full_name, ' / ', p1b.full_name) as team1_name,
+        CONCAT(p2a.full_name, ' / ', p2b.full_name) as team2_name,
+        CONCAT(wa.full_name, ' / ', wb.full_name) as winner_name,
+        c.code as category_code
+      FROM matches m
+      LEFT JOIN teams t1 ON m.team1_id = t1.id
+      LEFT JOIN players p1a ON t1.player1_id = p1a.id
+      LEFT JOIN players p1b ON t1.player2_id = p1b.id
+      LEFT JOIN teams t2 ON m.team2_id = t2.id
+      LEFT JOIN players p2a ON t2.player1_id = p2a.id
+      LEFT JOIN players p2b ON t2.player2_id = p2b.id
+      LEFT JOIN teams w ON m.winner_team_id = w.id
+      LEFT JOIN players wa ON w.player1_id = wa.id
+      LEFT JOIN players wb ON w.player2_id = wb.id
+      LEFT JOIN tournament_categories tc ON m.tournament_category_id = tc.id
+      LEFT JOIN categories c ON tc.category_id = c.id
+      WHERE m.tournament_id = ?
+    `;
+
+    const params = [tournamentId];
+    if (categoryCode) {
+      query += ` AND c.code = ?`;
+      params.push(categoryCode);
+    }
+
+    query += ` ORDER BY m.round_order DESC, m.match_number ASC`;
+
+    const [matches] = await pool.query(query, params);
+
+    // Group by round
+    const grouped = {};
+    for (const match of matches) {
+      const round = match.round || 'Outros';
+      if (!grouped[round]) {
+        grouped[round] = { round, round_order: match.round_order, matches: [] };
+      }
+      grouped[round].matches.push(match);
+    }
+
+    // Sort by round_order DESC (Final first, then Semi, etc.)
+    return Object.values(grouped).sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
+  }
+
   static async delete(id) {
     await pool.query(`DELETE FROM tournaments WHERE id = ?`, [id]);
     return true;

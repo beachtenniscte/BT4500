@@ -54,6 +54,16 @@ function Profile() {
       ranking: data.ranking || playerInfo?.ranking || '-',
       photo: data.photo || null,
       competitions: sortedCompetitions,
+      // New: Ratio (points per unique tournament)
+      ratio: data.ratio || '0',
+      // New: Rankings by category gender
+      rankings: data.rankings || {
+        gender_rank: null,
+        gender_points: 0,
+        gender_label: data.gender === 'M' ? 'Masculino' : 'Feminino',
+        mixed_rank: null,
+        mixed_points: 0
+      },
       stats: {
         totalCompetitions,
         titles,
@@ -394,6 +404,14 @@ function Profile() {
     ranking: '-',
     photo: null,
     competitions: [],
+    ratio: '0',
+    rankings: {
+      gender_rank: null,
+      gender_points: 0,
+      gender_label: 'Masculino',
+      mixed_rank: null,
+      mixed_points: 0
+    },
     stats: {
       totalCompetitions: 0,
       titles: 0,
@@ -459,10 +477,6 @@ function Profile() {
                   }}
                 />
               </div>
-              <div className={styles.rankingBadge}>
-                <span className={styles.rankingLabel}>RANKING</span>
-                <span className={styles.rankingNumber}>#{displayProfile.ranking}</span>
-              </div>
             </div>
 
             <div className={styles.basicInfo}>
@@ -481,6 +495,20 @@ function Profile() {
                   <span className={styles.infoValue}>{displayProfile.city}</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Rankings Row - Gender and Mixed Rankings */}
+          <div className={styles.rankingsRow}>
+            <div className={styles.rankCard}>
+              <span className={styles.rankLabel}>Ranking {displayProfile.rankings.gender_label}</span>
+              <span className={styles.rankValue}>#{displayProfile.rankings.gender_rank || '-'}</span>
+              <span className={styles.rankSubtext}>{displayProfile.rankings.gender_points || 0} pts</span>
+            </div>
+            <div className={styles.rankCard}>
+              <span className={styles.rankLabel}>Ranking Mistos</span>
+              <span className={styles.rankValue}>#{displayProfile.rankings.mixed_rank || '-'}</span>
+              <span className={styles.rankSubtext}>{displayProfile.rankings.mixed_points || 0} pts</span>
             </div>
           </div>
 
@@ -520,6 +548,13 @@ function Profile() {
                 {displayProfile.stats.totalCompetitions > 0 && (
                   <span className={styles.statSubtext}>{displayProfile.stats.avgPoints} media/torneio</span>
                 )}
+              </div>
+              <div className={styles.statCard} role="listitem">
+                <span className={styles.statNumber} aria-label={`${displayProfile.ratio} racio`}>
+                  {displayProfile.ratio}
+                </span>
+                <span className={styles.statLabel}>Racio</span>
+                <span className={styles.statSubtext}>pts/torneio</span>
               </div>
             </div>
           </section>

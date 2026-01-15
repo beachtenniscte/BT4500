@@ -109,6 +109,48 @@
   font-style: italic;
 }
 
+/* Rankings Row - Two ranking cards side by side */
+.rankingsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  padding: 0 clamp(20px, 4vw, 40px);
+  margin-top: -20px;
+  position: relative;
+  z-index: 1;
+}
+
+.rankCard {
+  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rankLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: 0.9;
+  letter-spacing: 0.5px;
+}
+
+.rankValue {
+  font-size: 28px;
+  font-weight: bold;
+  font-style: italic;
+  display: block;
+}
+
+.rankSubtext {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .basicInfo {
   display: flex;
   flex-direction: column;
@@ -740,5 +782,18 @@
   .categoryDetails {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .rankingsRow {
+    grid-template-columns: 1fr;
+    padding: 0 20px;
+  }
+
+  .rankCard {
+    padding: 14px;
+  }
+
+  .rankValue {
+    font-size: 24px;
   }
 }

@@ -73,8 +73,10 @@ router.get('/:uuid', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Get stats and history
+    // Get stats with ratio and rankings
     const stats = await Player.getStats(player.id);
+    const statsWithRatio = await Player.getStatsWithRatio(player.id);
+    const rankings = await Player.getPlayerRankings(player.id, player.gender);
     const history = await Player.getTournamentHistory(player.id, 50);
 
     // Group tournament results by tournament (one tournament can have multiple categories)
@@ -130,6 +132,19 @@ router.get('/:uuid', async (req, res) => {
       podiums: stats?.podiums || 0,
       matchesWon: stats?.total_wins || 0,
       matchesLost: stats?.total_losses || 0,
+
+      // New: Ratio (points per unique tournament)
+      ratio: statsWithRatio.ratio,
+      unique_tournaments: statsWithRatio.unique_tournaments,
+
+      // New: Rankings by category gender
+      rankings: {
+        gender_rank: rankings.gender_rank,
+        gender_points: rankings.gender_points,
+        gender_label: rankings.gender_label,
+        mixed_rank: rankings.mixed_rank,
+        mixed_points: rankings.mixed_points
+      },
 
       // Tournament history
       tournaments,

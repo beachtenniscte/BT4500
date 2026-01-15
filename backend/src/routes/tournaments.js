@@ -195,6 +195,54 @@ router.get('/:uuid/standings', async (req, res) => {
 });
 
 /**
+ * GET /api/tournaments/:uuid/winners
+ * Get tournament winners (1st place per category)
+ */
+router.get('/:uuid/winners', async (req, res) => {
+  try {
+    const tournament = await Tournament.findByUuid(req.params.uuid);
+
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const winners = await Tournament.getWinners(tournament.id);
+
+    res.json({
+      data: winners,
+      count: winners.length
+    });
+  } catch (error) {
+    console.error('Get tournament winners error:', error);
+    res.status(500).json({ error: 'Failed to get tournament winners' });
+  }
+});
+
+/**
+ * GET /api/tournaments/:uuid/matches-by-round
+ * Get tournament matches grouped by round
+ */
+router.get('/:uuid/matches-by-round', async (req, res) => {
+  try {
+    const tournament = await Tournament.findByUuid(req.params.uuid);
+
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const { category } = req.query;
+    const matchesByRound = await Tournament.getMatchesByRound(tournament.id, category);
+
+    res.json({
+      data: matchesByRound
+    });
+  } catch (error) {
+    console.error('Get tournament matches by round error:', error);
+    res.status(500).json({ error: 'Failed to get tournament matches' });
+  }
+});
+
+/**
  * POST /api/tournaments/:uuid/calculate-points
  * Calculate and award points for completed tournament
  */

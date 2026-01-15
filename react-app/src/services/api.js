@@ -280,6 +280,33 @@ const apiService = {
   },
 
   /**
+   * Get tournament winners (1st place per category)
+   * GET /tournaments/:uuid/winners
+   */
+  getTournamentWinners: async (uuid) => {
+    try {
+      const response = await fetchAPI(`/tournaments/${uuid}/winners`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get tournament matches grouped by round
+   * GET /tournaments/:uuid/matches-by-round
+   */
+  getTournamentMatchesByRound: async (uuid, category = null) => {
+    try {
+      const query = category ? `?category=${category}` : '';
+      const response = await fetchAPI(`/tournaments/${uuid}/matches-by-round${query}`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
    * Get player rankings
    * GET /players/rankings
    */

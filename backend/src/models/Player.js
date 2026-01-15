@@ -276,6 +276,89 @@ class Player {
     return stats[0];
   }
 
+  /**
+   * Get player stats with ratio (points per unique tournament)
+   * Critical: Divisor is unique tournaments, not categories
+   * Playing 2 categories in same tournament = 1 in divisor
+   */
+  static async getStatsWithRatio(playerId) {
+    const [stats] = await pool.query(`
+      SELECT
+        COUNT(DISTINCT ptr.tournament_id) as unique_tournaments,
+        COALESCE(SUM(ptr.points_earned), 0) as total_points,
+        COUNT(*) as total_entries,
+        COALESCE(SUM(ptr.matches_won), 0) as total_wins,
+        COALESCE(SUM(ptr.matches_lost), 0) as total_losses,
+        SUM(CASE WHEN ptr.final_position = 1 THEN 1 ELSE 0 END) as titles,
+        SUM(CASE WHEN ptr.final_position <= 3 THEN 1 ELSE 0 END) as podiums
+      FROM player_tournament_results ptr
+      WHERE ptr.player_id = ?
+    `, [playerId]);
+
+    const result = stats[0];
+    result.ratio = result.unique_tournaments > 0
+      ? (result.total_points / result.unique_tournaments).toFixed(1)
+      : '0';
+    return result;
+  }
+
+  /**
+   * Get player rankings by gender and mixed categories
+   * @param {number} playerId - Player's internal ID
+   * @param {string} playerGender - Player's gender ('M' or 'F')
+   */
+  static async getPlayerRankings(playerId, playerGender) {
+    // 1. Ranking for same gender (M or F) based on category gender points
+    const [genderRank] = await pool.query(`
+      WITH GenderPoints AS (
+        SELECT
+          p.id,
+          COALESCE(SUM(ptr.points_earned), 0) as gender_points
+        FROM players p
+        LEFT JOIN player_tournament_results ptr ON p.id = ptr.player_id
+        LEFT JOIN categories c ON ptr.category_id = c.id AND c.gender = ?
+        WHERE p.active = 1
+        GROUP BY p.id
+      ),
+      GenderRanking AS (
+        SELECT id, gender_points,
+               ROW_NUMBER() OVER (ORDER BY gender_points DESC) as rank
+        FROM GenderPoints
+        WHERE gender_points > 0
+      )
+      SELECT rank, gender_points FROM GenderRanking WHERE id = ?
+    `, [playerGender, playerId]);
+
+    // 2. Mixed ranking (based on MX category points)
+    const [mixedRank] = await pool.query(`
+      WITH MixedPoints AS (
+        SELECT
+          p.id,
+          COALESCE(SUM(ptr.points_earned), 0) as mx_points
+        FROM players p
+        LEFT JOIN player_tournament_results ptr ON p.id = ptr.player_id
+        LEFT JOIN categories c ON ptr.category_id = c.id AND c.gender = 'MX'
+        WHERE p.active = 1
+        GROUP BY p.id
+      ),
+      MixedRanking AS (
+        SELECT id, mx_points,
+               ROW_NUMBER() OVER (ORDER BY mx_points DESC) as rank
+        FROM MixedPoints
+        WHERE mx_points > 0
+      )
+      SELECT rank, mx_points FROM MixedRanking WHERE id = ?
+    `, [playerId]);
+
+    return {
+      gender_rank: genderRank[0]?.rank || null,
+      gender_points: genderRank[0]?.gender_points || 0,
+      gender_label: playerGender === 'M' ? 'Masculino' : 'Feminino',
+      mixed_rank: mixedRank[0]?.rank || null,
+      mixed_points: mixedRank[0]?.mx_points || 0
+    };
+  }
+
   static async getTournamentHistory(playerId, limit = 10) {
     const [history] = await pool.query(`
       SELECT TOP (?)

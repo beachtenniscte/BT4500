@@ -4,6 +4,7 @@ import Info from './pages/Info';
 import Provas from './pages/Provas';
 import Classificacao from './pages/Classificacao';
 import Profile from './pages/Profile';
+import TournamentDetail from './pages/TournamentDetail';
 import AdminCreateTournament from './pages/AdminCreateTournament';
 import AdminImportResults from './pages/AdminImportResults';
 import AdminLinkPlayers from './pages/AdminLinkPlayers';
@@ -16,6 +17,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/info" element={<Info />} />
         <Route path="/provas" element={<Provas />} />
+        <Route path="/tournament/:uuid" element={<TournamentDetail />} />
         <Route path="/classificacao" element={<Classificacao />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin/create-tournament" element={<AdminCreateTournament />} />

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import TopNavBar from '../components/TopNavBar';
 import styles from './Provas.module.css';
 
 function Provas() {
+  const navigate = useNavigate();
   const [provas, setProvas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,8 +80,10 @@ function Provas() {
   };
 
   const handleProvaClick = (prova) => {
-    // Navigate to tournament details (future feature)
-    console.log('Prova clicked:', prova);
+    // Navigate to tournament details page
+    if (prova.uuid) {
+      navigate(`/tournament/${prova.uuid}`);
+    }
   };
 
   return (
