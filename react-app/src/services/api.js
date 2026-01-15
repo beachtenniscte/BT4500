@@ -656,6 +656,17 @@ const apiService = {
       body: JSON.stringify({ email }),
     });
   },
+
+  /**
+   * Update player info (email, gender) - admin only
+   * PUT /admin/players/:uuid
+   */
+  updatePlayerInfo: async (playerUuid, data) => {
+    return await fetchAPI(`/admin/players/${playerUuid}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 /**

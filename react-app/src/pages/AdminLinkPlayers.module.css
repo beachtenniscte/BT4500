@@ -282,6 +282,37 @@
   color: #aaa;
 }
 
+/* Gender Selector */
+.genderSelector {
+  display: flex;
+  gap: 10px;
+}
+
+.genderOption {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.genderOption:hover {
+  border-color: #4CA69E;
+  color: #4CA69E;
+}
+
+.genderOptionActive {
+  border-color: #4CA69E;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
+  color: #4CA69E;
+  font-weight: 600;
+}
+
 .emailHint {
   font-size: 13px;
   color: #888;

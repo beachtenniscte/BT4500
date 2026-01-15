@@ -432,6 +432,8 @@ class CSVImportService {
 
     // Get or create players
     const playerIds = [];
+    const categoryGender = this.getGenderFromCategory(categoryCode);
+
     for (let i = 0; i < players.length; i++) {
       const p = players[i];
       const fullName = `${p.firstName} ${p.lastName}`.trim();
@@ -450,7 +452,7 @@ class CSVImportService {
         if (existing.length) {
           player = existing[0];
         } else {
-          // Determine gender
+          // Determine gender for new player
           const gender = this.getPlayerGender(categoryCode, i, players);
 
           const uuid = uuidv4();
@@ -467,6 +469,19 @@ class CSVImportService {
         }
         playerCache.set(playerCacheKey, player);
       }
+
+      // Update gender if player is in a gendered category (M or F, not MX)
+      // This ensures gender is set correctly based on category registration
+      if (categoryGender !== 'MX' && player.gender !== categoryGender) {
+        await pool.query(
+          `UPDATE players SET gender = ? WHERE id = ?`,
+          [categoryGender, player.id]
+        );
+        player.gender = categoryGender;
+        // Update cache
+        playerCache.set(playerCacheKey, player);
+      }
+
       playerIds.push(player.id);
     }
 

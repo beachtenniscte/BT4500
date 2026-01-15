@@ -10,6 +10,7 @@ function AdminLinkPlayers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('M');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -52,6 +53,7 @@ function AdminLinkPlayers() {
   const handlePlayerSelect = (player) => {
     setSelectedPlayer(player);
     setEmail(player.email || '');
+    setGender(player.gender || 'M');
     setMessage(null);
     setError(null);
   };
@@ -62,16 +64,14 @@ function AdminLinkPlayers() {
       return;
     }
 
-    if (!email.trim()) {
-      setError('Introduza um email');
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setError('Email invalido');
-      return;
+    // Email is optional - only validate if provided
+    const emailToSave = email.trim() || null;
+    if (emailToSave) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailToSave)) {
+        setError('Email invalido');
+        return;
+      }
     }
 
     setSaving(true);
@@ -79,17 +79,30 @@ function AdminLinkPlayers() {
     setMessage(null);
 
     try {
-      await apiService.linkPlayerEmail(selectedPlayer.uuid, email.trim());
+      await apiService.updatePlayerInfo(selectedPlayer.uuid, {
+        email: emailToSave,
+        gender: gender
+      });
 
-      setMessage(`Email "${email}" associado a ${selectedPlayer.full_name} com sucesso!`);
+      const messages = [];
+      if (emailToSave) {
+        messages.push(`Email "${emailToSave}" associado`);
+      }
+      if (gender !== selectedPlayer.gender) {
+        messages.push(`Genero alterado para ${gender === 'M' ? 'Masculino' : 'Feminino'}`);
+      }
+
+      setMessage(messages.length > 0
+        ? `${selectedPlayer.full_name}: ${messages.join(', ')}`
+        : 'Dados guardados com sucesso!');
 
       // Update local state
       setPlayers(prev => prev.map(p =>
-        p.id === selectedPlayer.id ? { ...p, email: email.trim() } : p
+        p.id === selectedPlayer.id ? { ...p, email: emailToSave, gender: gender } : p
       ));
-      setSelectedPlayer(prev => ({ ...prev, email: email.trim() }));
+      setSelectedPlayer(prev => ({ ...prev, email: emailToSave, gender: gender }));
     } catch (err) {
-      setError(err.message || 'Erro ao associar email');
+      setError(err.message || 'Erro ao guardar dados');
     } finally {
       setSaving(false);
     }
@@ -233,7 +246,27 @@ function AdminLinkPlayers() {
                   </div>
 
                   <div className={styles.emailInputGroup}>
-                    <label className={styles.emailLabel}>Email</label>
+                    <label className={styles.emailLabel}>Genero</label>
+                    <div className={styles.genderSelector}>
+                      <button
+                        type="button"
+                        className={`${styles.genderOption} ${gender === 'M' ? styles.genderOptionActive : ''}`}
+                        onClick={() => setGender('M')}
+                      >
+                        M - Masculino
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.genderOption} ${gender === 'F' ? styles.genderOptionActive : ''}`}
+                        onClick={() => setGender('F')}
+                      >
+                        F - Feminino
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.emailInputGroup}>
+                    <label className={styles.emailLabel}>Email (opcional)</label>
                     <input
                       type="email"
                       value={email}

@@ -524,4 +524,57 @@ router.put('/players/:uuid/email', authenticate, adminOnly, async (req, res) => 
   }
 });
 
+/**
+ * PUT /api/admin/players/:uuid
+ * Update player info (email, gender) - admin only
+ */
+router.put('/players/:uuid', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { email, gender } = req.body;
+    const player = await Player.findByUuid(req.params.uuid);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const updates = {};
+
+    // Handle email update
+    if (email !== undefined) {
+      const emailToSet = email && email.trim() ? email.trim().toLowerCase() : null;
+
+      // Check if email is already used by another player
+      if (emailToSet) {
+        const existingPlayer = await Player.findByEmail(emailToSet);
+        if (existingPlayer && existingPlayer.id !== player.id) {
+          return res.status(400).json({
+            error: `Este email ja esta associado ao jogador: ${existingPlayer.full_name}`
+          });
+        }
+      }
+
+      await Player.updateEmail(player.id, emailToSet);
+      updates.email = emailToSet;
+    }
+
+    // Handle gender update
+    if (gender && ['M', 'F'].includes(gender)) {
+      await Player.update(player.id, { gender });
+      updates.gender = gender;
+    }
+
+    res.json({
+      message: 'Jogador atualizado com sucesso',
+      player: {
+        uuid: player.uuid,
+        name: player.full_name,
+        ...updates
+      }
+    });
+  } catch (error) {
+    console.error('Update player error:', error);
+    res.status(500).json({ error: 'Failed to update player' });
+  }
+});
+
 module.exports = router;
