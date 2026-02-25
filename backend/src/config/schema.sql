@@ -25,7 +25,7 @@ BEGIN
       id INT IDENTITY(1,1) PRIMARY KEY,
       uuid UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
       email NVARCHAR(255) NOT NULL UNIQUE,
-      password_hash NVARCHAR(255) NOT NULL,
+      password_hash NVARCHAR(255) NULL,  -- NULL for OAuth users (Google, etc.)
       role NVARCHAR(20) DEFAULT 'player' CHECK (role IN ('admin', 'player', 'organizer')),
       created_at DATETIME2 DEFAULT GETDATE(),
       updated_at DATETIME2 DEFAULT GETDATE()
