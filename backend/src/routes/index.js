@@ -7,6 +7,7 @@ const tournamentsRoutes = require('./tournaments');
 const matchesRoutes = require('./matches');
 const pointsRoutes = require('./points');
 const adminRoutes = require('./admin');
+const signupsRoutes = require('./signups');
 
 // API Routes
 router.use('/auth', authRoutes);
@@ -15,6 +16,7 @@ router.use('/tournaments', tournamentsRoutes);
 router.use('/matches', matchesRoutes);
 router.use('/points', pointsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/signups', signupsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

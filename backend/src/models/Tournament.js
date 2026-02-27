@@ -101,7 +101,9 @@ class Tournament {
     return rows;
   }
 
-  static async addCategory(tournamentId, categoryId, drawSize = 16, format = 'mixed') {
+  static async addCategory(tournamentId, categoryId, drawSize = 16, format = 'mixed', registrationConfig = {}) {
+    const { registrationType = 'none', registrationUrl = null, registrationOpen = true } = registrationConfig;
+
     // Check if exists first (MS SQL doesn't have ON DUPLICATE KEY)
     const [existing] = await pool.query(
       `SELECT id FROM tournament_categories WHERE tournament_id = ? AND category_id = ?`,
@@ -110,22 +112,22 @@ class Tournament {
 
     if (existing.length > 0) {
       await pool.query(
-        `UPDATE tournament_categories SET draw_size = ?, format = ? WHERE tournament_id = ? AND category_id = ?`,
-        [drawSize, format, tournamentId, categoryId]
+        `UPDATE tournament_categories SET draw_size = ?, format = ?, registration_type = ?, registration_url = ?, registration_open = ? WHERE tournament_id = ? AND category_id = ?`,
+        [drawSize, format, registrationType, registrationUrl, registrationOpen ? 1 : 0, tournamentId, categoryId]
       );
       return existing[0];
     } else {
       const [result] = await pool.query(
-        `INSERT INTO tournament_categories (tournament_id, category_id, draw_size, format)
+        `INSERT INTO tournament_categories (tournament_id, category_id, draw_size, format, registration_type, registration_url, registration_open)
          OUTPUT INSERTED.id
-         VALUES (?, ?, ?, ?)`,
-        [tournamentId, categoryId, drawSize, format]
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [tournamentId, categoryId, drawSize, format, registrationType, registrationUrl, registrationOpen ? 1 : 0]
       );
       return result[0];
     }
   }
 
-  static async addCategoryByCode(tournamentId, categoryCode, drawSize = 16, format = 'mixed') {
+  static async addCategoryByCode(tournamentId, categoryCode, drawSize = 16, format = 'mixed', registrationConfig = {}) {
     // Find category by code
     const [categories] = await pool.query(
       `SELECT id FROM categories WHERE code = ?`,
@@ -137,7 +139,7 @@ class Tournament {
     }
 
     const categoryId = categories[0].id;
-    return this.addCategory(tournamentId, categoryId, drawSize, format);
+    return this.addCategory(tournamentId, categoryId, drawSize, format, registrationConfig);
   }
 
   static async getMatches(tournamentId, categoryCode = null) {
@@ -234,15 +236,14 @@ class Tournament {
    */
   static async getMatchesByRound(tournamentId, categoryCode = null) {
     let query = `
-      SELECT
-        m.*,
-        m.round,
-        m.round_order,
-        CONCAT(p1a.full_name, ' / ', p1b.full_name) as team1_name,
-        CONCAT(p2a.full_name, ' / ', p2b.full_name) as team2_name,
-        CONCAT(wa.full_name, ' / ', wb.full_name) as winner_name,
-        c.code as category_code
+      SELECT m.*,
+             c.code as category_code,
+             CONCAT(p1a.full_name, ' / ', p1b.full_name) as team1_name,
+             CONCAT(p2a.full_name, ' / ', p2b.full_name) as team2_name,
+             CONCAT(wa.full_name, ' / ', wb.full_name) as winner_name
       FROM matches m
+      JOIN tournament_categories tc ON m.tournament_category_id = tc.id
+      JOIN categories c ON tc.category_id = c.id
       LEFT JOIN teams t1 ON m.team1_id = t1.id
       LEFT JOIN players p1a ON t1.player1_id = p1a.id
       LEFT JOIN players p1b ON t1.player2_id = p1b.id
@@ -252,8 +253,6 @@ class Tournament {
       LEFT JOIN teams w ON m.winner_team_id = w.id
       LEFT JOIN players wa ON w.player1_id = wa.id
       LEFT JOIN players wb ON w.player2_id = wb.id
-      LEFT JOIN tournament_categories tc ON m.tournament_category_id = tc.id
-      LEFT JOIN categories c ON tc.category_id = c.id
       WHERE m.tournament_id = ?
     `;
 

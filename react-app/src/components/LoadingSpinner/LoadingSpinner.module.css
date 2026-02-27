@@ -1,0 +1,52 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  color: white;
+}
+
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.small {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.medium {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.large {
+  width: 56px;
+  height: 56px;
+  border-width: 4px;
+}
+
+.message {
+  font-size: 16px;
+}
+
+/* Variant for use inside cards/modals (dark spinner on light background) */
+.container[data-variant="card"] {
+  color: #666;
+}
+
+.container[data-variant="card"] .spinner {
+  border-color: rgba(76, 166, 158, 0.2);
+  border-top-color: #4CA69E;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -2,13 +2,20 @@
 
 .container {
   min-height: 100vh;
-  padding-top: 60px; /* Space for fixed TopNavBar */
+  padding-top: 60px;
 }
 
 .content {
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
+}
+
+/* Icons */
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* Loading & Error States */
@@ -54,42 +61,6 @@
   box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
 }
 
-/* Year Filter */
-.yearFilter {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.yearButton {
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 25px;
-  padding: 10px 24px;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.yearButton:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.yearButtonActive {
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-  border-color: #f39c12;
-  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
-}
-
-.yearButtonActive:hover {
-  background: linear-gradient(135deg, #f5a623 0%, #e8850c 100%);
-}
-
 /* Empty State */
 .emptyState {
   display: flex;
@@ -123,93 +94,132 @@
   margin: 0;
 }
 
-/* Main Card */
-.mainCard {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+/* Years List */
+.yearsList {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Year Section */
+.yearSection {
   animation: fadeIn 0.6s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.cardHeader {
+.yearHeader {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 25px;
-  background: linear-gradient(135deg, #4CA69E 0%, #774494 100%);
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.yearTitle {
+  font-size: 32px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.yearCount {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* Status Section */
+.statusSection {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sectionHeader,
+.sectionHeaderUpcoming {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
   color: white;
 }
 
-.headerIcon {
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.sectionHeader {
+  background: linear-gradient(135deg, #4CA69E 0%, #3d8a82 100%);
 }
 
-.headerIcon svg {
-  width: 24px;
-  height: 24px;
-  stroke: white;
+.sectionHeaderUpcoming {
+  background: linear-gradient(135deg, #774494 0%, #5a3370 100%);
 }
 
-.cardTitle {
-  font-size: 24px;
-  font-weight: bold;
-  font-style: italic;
+.sectionHeader h3,
+.sectionHeaderUpcoming h3 {
   margin: 0;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  flex: 1;
 }
 
-.cardContent {
-  padding: 20px;
+.sectionHeader .icon,
+.sectionHeaderUpcoming .icon {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.sectionCount {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* Provas List */
 .provasList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
+/* Prova Card */
 .provaCard {
-  background: linear-gradient(to right, rgba(76, 166, 158, 0.05) 0%, rgba(119, 68, 148, 0.05) 100%);
-  border-left: 4px solid #f39c12;
-  border-radius: 8px;
-  padding: 16px 20px;
-  transition: all 0.3s ease;
-  cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #eee;
+}
+
+.provaCard:last-child {
+  border-bottom: none;
 }
 
 .provaCard:hover {
-  background: linear-gradient(to right, rgba(76, 166, 158, 0.1) 0%, rgba(119, 68, 148, 0.1) 100%);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(76, 166, 158, 0.05);
+}
+
+.provaCardCompleted {
+  border-left: 4px solid #4CA69E;
+}
+
+.provaCardUpcoming {
+  border-left: 4px solid #774494;
+}
+
+.provaCardCompleted:hover {
+  background: rgba(76, 166, 158, 0.08);
+}
+
+.provaCardUpcoming:hover {
+  background: rgba(119, 68, 148, 0.08);
 }
 
 .provaInfo {
@@ -229,14 +239,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: bold;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: white;
-  background: linear-gradient(135deg, #4CA69E 0%, #3d8a82 100%);
 }
 
 .tierBadge.gold {
@@ -252,7 +261,7 @@
 }
 
 .provaName {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #333;
 }
@@ -261,55 +270,54 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #666;
 }
 
-.dateIcon {
-  width: 16px;
-  height: 16px;
+.provaDates .icon {
+  width: 14px;
+  height: 14px;
   color: #888;
 }
 
-/* Status Badges */
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 16px;
+/* Action Labels */
+.provaAction {
+  flex-shrink: 0;
+}
+
+.resultsLabel {
+  color: #4CA69E;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.provaCard:hover .resultsLabel {
+  color: #3d8a82;
+}
+
+.upcomingLabel {
+  color: #774494;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  padding: 5px 12px;
+  background: rgba(119, 68, 148, 0.1);
+  border-radius: 12px;
 }
 
-.statusUpcoming {
-  background: linear-gradient(135deg, rgba(76, 166, 158, 0.15) 0%, rgba(76, 166, 158, 0.25) 100%);
-  color: #4CA69E;
-  border: 1px solid rgba(76, 166, 158, 0.3);
-}
-
-.statusLive {
-  background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(243, 156, 18, 0.25) 100%);
-  color: #e67e22;
-  border: 1px solid rgba(243, 156, 18, 0.3);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
     opacity: 1;
+    transform: translateY(0);
   }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.statusCompleted {
-  background: linear-gradient(135deg, rgba(119, 68, 148, 0.15) 0%, rgba(119, 68, 148, 0.25) 100%);
-  color: #774494;
-  border: 1px solid rgba(119, 68, 148, 0.3);
 }
 
 /* Responsive */
@@ -322,26 +330,28 @@
     padding: 15px;
   }
 
-  .yearFilter {
-    gap: 8px;
-    margin-bottom: 15px;
+  .yearsList {
+    gap: 24px;
   }
 
-  .yearButton {
-    padding: 8px 18px;
+  .yearTitle {
+    font-size: 26px;
+  }
+
+  .sectionHeader,
+  .sectionHeaderUpcoming {
+    padding: 14px 16px;
+  }
+
+  .sectionHeader h3,
+  .sectionHeaderUpcoming h3 {
     font-size: 14px;
   }
 
-  .cardHeader {
-    padding: 20px;
-  }
-
-  .cardTitle {
-    font-size: 20px;
-  }
-
-  .cardContent {
-    padding: 15px;
+  .provaCard {
+    padding: 14px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .emptyIcon {
@@ -363,36 +373,28 @@
     padding: 12px;
   }
 
-  .cardHeader {
-    padding: 15px;
-    gap: 12px;
+  .yearHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
-  .headerIcon {
-    width: 40px;
-    height: 40px;
+  .yearTitle {
+    font-size: 24px;
   }
 
-  .headerIcon svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .cardTitle {
-    font-size: 18px;
-  }
-
-  .cardContent {
-    padding: 12px;
+  .sectionHeader,
+  .sectionHeaderUpcoming {
+    padding: 12px 14px;
   }
 
   .provaCard {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   .tierBadge {
-    padding: 5px 10px;
-    font-size: 11px;
+    padding: 4px 10px;
+    font-size: 10px;
   }
 
   .provaName {
@@ -400,12 +402,16 @@
   }
 
   .provaDates {
-    font-size: 13px;
+    font-size: 12px;
   }
 
-  .statusBadge {
+  .resultsLabel {
+    font-size: 12px;
+  }
+
+  .upcomingLabel {
     font-size: 11px;
-    padding: 5px 10px;
+    padding: 4px 10px;
   }
 }
 

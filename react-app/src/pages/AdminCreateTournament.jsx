@@ -17,12 +17,12 @@ function AdminCreateTournament() {
     year: new Date().getFullYear().toString()
   });
   const [selectedCategories, setSelectedCategories] = useState({
-    M1: true,
-    M2: true,
-    F1: true,
-    F2: true,
-    MX1: true,
-    MX2: true
+    M1: { selected: true, registrationType: 'none', registrationUrl: '' },
+    M2: { selected: true, registrationType: 'none', registrationUrl: '' },
+    F1: { selected: true, registrationType: 'none', registrationUrl: '' },
+    F2: { selected: true, registrationType: 'none', registrationUrl: '' },
+    MX1: { selected: true, registrationType: 'none', registrationUrl: '' },
+    MX2: { selected: true, registrationType: 'none', registrationUrl: '' }
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -56,11 +56,15 @@ function AdminCreateTournament() {
   const handleFormChange = (field, value) => {
     setTournamentForm(prev => {
       const updated = { ...prev, [field]: value };
-      // Auto-fill year from start date
+      // Auto-fill year and endDate from start date
       if (field === 'startDate' && value) {
-        const parts = value.split('/');
-        if (parts.length === 3 && parts[2].length === 4) {
-          updated.year = parts[2];
+        const year = value.split('-')[0];
+        if (year) {
+          updated.year = year;
+        }
+        // Auto-set end date to same as start if empty
+        if (!prev.endDate) {
+          updated.endDate = value;
         }
       }
       return updated;
@@ -73,7 +77,21 @@ function AdminCreateTournament() {
   const handleCategoryToggle = (categoryCode) => {
     setSelectedCategories(prev => ({
       ...prev,
-      [categoryCode]: !prev[categoryCode]
+      [categoryCode]: {
+        ...prev[categoryCode],
+        selected: !prev[categoryCode].selected
+      }
+    }));
+  };
+
+  // Handle category registration type change
+  const handleCategoryRegistration = (categoryCode, field, value) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [categoryCode]: {
+        ...prev[categoryCode],
+        [field]: value
+      }
     }));
   };
 
@@ -89,30 +107,23 @@ function AdminCreateTournament() {
       return;
     }
 
-    // Get selected categories
+    // Get selected categories with registration config
     const categories = Object.entries(selectedCategories)
-      .filter(([, selected]) => selected)
-      .map(([code]) => code);
+      .filter(([, config]) => config.selected)
+      .map(([code, config]) => ({
+        code,
+        registrationType: config.registrationType,
+        registrationUrl: config.registrationType === 'external' ? config.registrationUrl : null
+      }));
 
     if (categories.length === 0) {
       setError('Selecione pelo menos uma categoria');
       return;
     }
 
-    // Parse dates from DD/MM/YYYY to YYYY-MM-DD
-    const parsePortugueseDate = (dateStr) => {
-      const parts = dateStr.split('/');
-      if (parts.length !== 3) return null;
-      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    };
-
-    const startDate = parsePortugueseDate(tournamentForm.startDate);
-    const endDate = parsePortugueseDate(tournamentForm.endDate);
-
-    if (!startDate || !endDate) {
-      setError('Data invalida. Use o formato DD/MM/YYYY');
-      return;
-    }
+    // Dates are already in YYYY-MM-DD format from the date inputs
+    const startDate = tournamentForm.startDate;
+    const endDate = tournamentForm.endDate;
 
     setCreatingTournament(true);
     try {
@@ -140,12 +151,12 @@ function AdminCreateTournament() {
       });
       // Reset categories to all selected
       setSelectedCategories({
-        M1: true,
-        M2: true,
-        F1: true,
-        F2: true,
-        MX1: true,
-        MX2: true
+        M1: { selected: true, registrationType: 'none', registrationUrl: '' },
+        M2: { selected: true, registrationType: 'none', registrationUrl: '' },
+        F1: { selected: true, registrationType: 'none', registrationUrl: '' },
+        F2: { selected: true, registrationType: 'none', registrationUrl: '' },
+        MX1: { selected: true, registrationType: 'none', registrationUrl: '' },
+        MX2: { selected: true, registrationType: 'none', registrationUrl: '' }
       });
     } catch (err) {
       setError(err.message || 'Erro ao criar torneio');
@@ -253,53 +264,80 @@ function AdminCreateTournament() {
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Data Inicio * (DD/MM/YYYY)</label>
+                  <label className={styles.formLabel}>Data Início *</label>
                   <input
-                    type="text"
+                    type="date"
                     value={tournamentForm.startDate}
                     onChange={(e) => handleFormChange('startDate', e.target.value)}
-                    placeholder="10/05/2025"
                     className={styles.formInput}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Data Fim * (DD/MM/YYYY)</label>
+                  <label className={styles.formLabel}>Data Fim *</label>
                   <input
-                    type="text"
+                    type="date"
                     value={tournamentForm.endDate}
                     onChange={(e) => handleFormChange('endDate', e.target.value)}
-                    placeholder="11/05/2025"
+                    min={tournamentForm.startDate}
                     className={styles.formInput}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Ano *</label>
+                  <label className={styles.formLabel}>Ano</label>
                   <input
                     type="text"
                     value={tournamentForm.year}
-                    onChange={(e) => handleFormChange('year', e.target.value)}
-                    className={styles.formInput}
+                    readOnly
+                    className={`${styles.formInput} ${styles.formInputReadonly}`}
                   />
                 </div>
               </div>
 
-              {/* Categories Selection */}
+              {/* Categories Selection with Registration Config */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Categorias *</label>
-                <div className={styles.categoriesGrid}>
+                <label className={styles.formLabel}>Categorias e Inscricoes *</label>
+                <div className={styles.categoriesList}>
                   {availableCategories.map(cat => (
-                    <label key={cat.code} className={styles.categoryCheckbox}>
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories[cat.code]}
-                        onChange={() => handleCategoryToggle(cat.code)}
-                        className={styles.checkbox}
-                      />
-                      <span className={styles.categoryLabel}>
-                        <span className={styles.categoryCode}>{cat.code}</span>
-                        <span className={styles.categoryName}>{cat.label}</span>
-                      </span>
-                    </label>
+                    <div key={cat.code} className={styles.categoryItem}>
+                      <div className={styles.categoryHeader}>
+                        <label className={styles.categoryCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories[cat.code].selected}
+                            onChange={() => handleCategoryToggle(cat.code)}
+                            className={styles.checkbox}
+                          />
+                          <span className={styles.categoryLabel}>
+                            <span className={styles.categoryCode}>{cat.code}</span>
+                            <span className={styles.categoryName}>{cat.label}</span>
+                          </span>
+                        </label>
+                      </div>
+
+                      {selectedCategories[cat.code].selected && (
+                        <div className={styles.registrationConfig}>
+                          <select
+                            value={selectedCategories[cat.code].registrationType}
+                            onChange={(e) => handleCategoryRegistration(cat.code, 'registrationType', e.target.value)}
+                            className={styles.registrationSelect}
+                          >
+                            <option value="none">Sem inscricoes</option>
+                            <option value="form">Formulario interno</option>
+                            <option value="external">Link externo</option>
+                          </select>
+
+                          {selectedCategories[cat.code].registrationType === 'external' && (
+                            <input
+                              type="url"
+                              value={selectedCategories[cat.code].registrationUrl}
+                              onChange={(e) => handleCategoryRegistration(cat.code, 'registrationUrl', e.target.value)}
+                              placeholder="https://www.tietennis.com/..."
+                              className={styles.registrationUrlInput}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

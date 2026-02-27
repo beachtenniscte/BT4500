@@ -2,181 +2,178 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import TopNavBar from '../components/TopNavBar';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { TrophyIcon, CalendarIcon, EmptyCalendarIcon } from '../components/icons';
+import { TIER_CLASSES } from '../utils';
 import styles from './Provas.module.css';
 
 function Provas() {
   const navigate = useNavigate();
-  const [provas, setProvas] = useState([]);
+  const [allProvas, setAllProvas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
 
   useEffect(() => {
-    loadAvailableYears();
+    loadAllProvas();
   }, []);
 
-  useEffect(() => {
-    loadProvas(selectedYear);
-  }, [selectedYear]);
-
-  const loadAvailableYears = async () => {
-    const years = await apiService.getAvailableYears();
-    setAvailableYears(years);
-    // If current year has no tournaments, select the most recent year with data
-    const currentYear = new Date().getFullYear();
-    if (years.length > 0 && !years.includes(currentYear)) {
-      setSelectedYear(years[0]);
-    }
-  };
-
-  const loadProvas = async (year) => {
+  const loadAllProvas = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiService.getProvas(year);
-      setProvas(data);
+      const years = await apiService.getAvailableYears();
+      setAvailableYears(years);
+
+      // Load provas for all years with year info attached
+      const allProvasData = [];
+      for (const year of years) {
+        const data = await apiService.getProvas(year);
+        // Attach year to each prova
+        const provasWithYear = data.map(p => ({ ...p, year }));
+        allProvasData.push(...provasWithYear);
+      }
+      setAllProvas(allProvasData);
     } catch (err) {
       console.error('Error fetching provas:', err);
       setError('Erro ao carregar provas');
-      setProvas([]);
+      setAllProvas([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleYearChange = (year) => {
-    setSelectedYear(year);
-  };
-
   const getBadgeClass = (type) => {
-    switch (type?.toUpperCase()) {
-      case 'OURO':
-        return styles.gold;
-      case 'PRATA':
-        return styles.silver;
-      case 'BRONZE':
-        return styles.bronze;
-      default:
-        return '';
-    }
-  };
-
-  const getStatusLabel = (prova) => {
-    if (prova.status === 'completed') return 'Concluído';
-    if (prova.status === 'in_progress') return 'A Decorrer';
-    return 'Próxima';
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'completed':
-        return styles.statusCompleted;
-      case 'in_progress':
-        return styles.statusLive;
-      default:
-        return styles.statusUpcoming;
-    }
+    const tierKey = type?.toUpperCase();
+    const className = TIER_CLASSES[tierKey];
+    return className ? styles[className.replace('tier', '').toLowerCase()] : '';
   };
 
   const handleProvaClick = (prova) => {
-    // Navigate to tournament details page
     if (prova.uuid) {
       navigate(`/tournament/${prova.uuid}`);
     }
   };
 
+  // Group provas by year
+  const getProvasByYear = () => {
+    const grouped = {};
+    for (const prova of allProvas) {
+      const year = prova.year || new Date().getFullYear();
+
+      if (!grouped[year]) {
+        grouped[year] = { completed: [], upcoming: [] };
+      }
+
+      if (prova.status === 'completed') {
+        grouped[year].completed.push(prova);
+      } else {
+        grouped[year].upcoming.push(prova);
+      }
+    }
+    return grouped;
+  };
+
+  const provasByYear = getProvasByYear();
+  const sortedYears = Object.keys(provasByYear).sort((a, b) => b - a);
+
+  const renderProvaCard = (prova, isCompleted) => (
+    <button
+      key={prova.id}
+      className={`${styles.provaCard} ${isCompleted ? styles.provaCardCompleted : styles.provaCardUpcoming}`}
+      onClick={() => handleProvaClick(prova)}
+      aria-label={`${prova.name || prova.type} - ${isCompleted ? 'Ver resultados' : prova.status === 'in_progress' ? 'A Decorrer' : 'Brevemente'}`}
+    >
+      <div className={styles.provaInfo}>
+        <div className={styles.provaMain}>
+          <span className={`${styles.tierBadge} ${getBadgeClass(prova.type)}`}>
+            {prova.type}
+          </span>
+          {prova.name && (
+            <span className={styles.provaName}>{prova.name}</span>
+          )}
+        </div>
+        <span className={styles.provaDates}>
+          <CalendarIcon size={14} className={styles.icon} />
+          {prova.dates}
+        </span>
+      </div>
+      <div className={styles.provaAction}>
+        {isCompleted ? (
+          <span className={styles.resultsLabel}>Ver resultados →</span>
+        ) : (
+          <span className={styles.upcomingLabel}>
+            {prova.status === 'in_progress' ? 'A Decorrer' : 'Brevemente'}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+
   return (
     <div className={styles.container}>
-      <TopNavBar title={`PROVAS ${selectedYear}`} showBack={true} backTo="/" />
+      <TopNavBar title="PROVAS" showBack={true} backTo="/" />
 
       <div className={styles.content}>
-        {/* Year Filter - show if more than 1 year OR if current selection differs from available */}
-        {availableYears.length > 0 && (availableYears.length > 1 || !availableYears.includes(selectedYear)) && (
-          <div className={styles.yearFilter}>
-            {availableYears.map((year) => (
-              <button
-                key={year}
-                className={`${styles.yearButton} ${selectedYear === year ? styles.yearButtonActive : ''}`}
-                onClick={() => handleYearChange(year)}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
-        )}
-
         {loading ? (
-          <div className={styles.loadingState}>
-            <div className={styles.spinner}></div>
-            <span>A carregar provas...</span>
-          </div>
+          <LoadingSpinner message="A carregar provas..." />
         ) : error ? (
-          <div className={styles.errorState}>
+          <div className={styles.errorState} role="alert">
             <span>{error}</span>
-            <button onClick={() => loadProvas(selectedYear)} className={styles.retryButton}>
+            <button onClick={loadAllProvas} className={styles.retryButton}>
               Tentar novamente
             </button>
           </div>
-        ) : provas.length === 0 ? (
+        ) : sortedYears.length === 0 ? (
           <div className={styles.emptyState}>
-            <svg viewBox="0 0 24 24" className={styles.emptyIcon}>
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>
-              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
-            </svg>
+            <EmptyCalendarIcon size={64} className={styles.emptyIcon} />
             <h3>Sem provas agendadas</h3>
-            <p>Não existem provas registadas para {selectedYear}</p>
+            <p>Nao existem provas registadas</p>
           </div>
         ) : (
-          <div className={styles.mainCard}>
-            <div className={styles.cardHeader}>
-              <div className={styles.headerIcon}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-              <h2 className={styles.cardTitle}>Calendário de Provas</h2>
-            </div>
+          <div className={styles.yearsList}>
+            {sortedYears.map((year) => {
+              const { completed, upcoming } = provasByYear[year];
+              const hasCompleted = completed.length > 0;
+              const hasUpcoming = upcoming.length > 0;
 
-            <div className={styles.cardContent}>
-              <div className={styles.provasList}>
-                {provas.map((prova) => (
-                  <div
-                    key={prova.id}
-                    className={styles.provaCard}
-                    onClick={() => handleProvaClick(prova)}
-                  >
-                    <div className={styles.provaInfo}>
-                      <div className={styles.provaMain}>
-                        <span className={`${styles.tierBadge} ${getBadgeClass(prova.type)}`}>
-                          {prova.type}
-                        </span>
-                        {prova.name && (
-                          <span className={styles.provaName}>{prova.name}</span>
-                        )}
-                      </div>
-                      <span className={styles.provaDates}>
-                        <svg viewBox="0 0 24 24" className={styles.dateIcon}>
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
-                        </svg>
-                        {prova.dates}
-                      </span>
-                    </div>
-                    <span className={`${styles.statusBadge} ${getStatusClass(prova.status)}`}>
-                      {getStatusLabel(prova)}
+              return (
+                <section key={year} className={styles.yearSection} aria-labelledby={`year-${year}`}>
+                  <div className={styles.yearHeader}>
+                    <h2 id={`year-${year}`} className={styles.yearTitle}>{year}</h2>
+                    <span className={styles.yearCount}>
+                      {completed.length + upcoming.length} prova{completed.length + upcoming.length !== 1 ? 's' : ''}
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  {hasCompleted && (
+                    <div className={styles.statusSection}>
+                      <div className={styles.sectionHeader}>
+                        <TrophyIcon size={20} className={styles.icon} />
+                        <h3>Concluidos</h3>
+                        <span className={styles.sectionCount}>{completed.length}</span>
+                      </div>
+                      <div className={styles.provasList}>
+                        {completed.map((prova) => renderProvaCard(prova, true))}
+                      </div>
+                    </div>
+                  )}
+
+                  {hasUpcoming && (
+                    <div className={styles.statusSection}>
+                      <div className={styles.sectionHeaderUpcoming}>
+                        <CalendarIcon size={20} className={styles.icon} />
+                        <h3>Proximos</h3>
+                        <span className={styles.sectionCount}>{upcoming.length}</span>
+                      </div>
+                      <div className={styles.provasList}>
+                        {upcoming.map((prova) => renderProvaCard(prova, false))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
           </div>
         )}
       </div>

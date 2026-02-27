@@ -1,0 +1,444 @@
+/* Admin Signups Page Styles */
+
+/* Visually hidden but accessible to screen readers */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.container {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.innerPage {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px);
+}
+
+.backButton {
+  background: linear-gradient(to bottom, #f5f5f5 0%, #e0e0e0 100%);
+  border: none;
+  border-bottom: 3px solid #f39c12;
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  margin-bottom: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.backButton:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pageTitle {
+  color: white;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: bold;
+  font-style: italic;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tournamentInfo {
+  margin-bottom: 25px;
+}
+
+.tournamentName {
+  color: white;
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+.loading {
+  color: white;
+  font-size: 24px;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Stats Bar */
+.statsBar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: #4CA69E;
+}
+
+.statLabel {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Filters */
+.filtersBar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filterSelect {
+  padding: 10px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #4CA69E;
+}
+
+/* Main Card */
+.mainCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+}
+
+/* Category Section */
+.categorySection {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.categorySection:last-child {
+  border-bottom: none;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #4CA69E 0%, #3d8a82 100%);
+  color: white;
+}
+
+.categoryCode {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.categoryCount {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Signup Group */
+.signupGroup {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.signupGroup:last-child {
+  border-bottom: none;
+}
+
+.groupTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #774494;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+.signupsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Signup Card */
+.signupCard {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.signupMain {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.playerInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.playerName {
+  font-weight: 600;
+  color: #333;
+}
+
+.partnerLabel {
+  color: #4CA69E;
+  font-weight: 700;
+}
+
+.contactLink {
+  font-size: 13px;
+  color: #25D366;
+  text-decoration: none;
+}
+
+.contactLink:hover {
+  text-decoration: underline;
+}
+
+.email {
+  font-size: 12px;
+  color: #666;
+}
+
+.potBadge {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Signup Meta */
+.signupMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.statusBadge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.signupDate {
+  font-size: 11px;
+  color: #999;
+}
+
+/* Signup Actions */
+.signupActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.statusSelect {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+}
+
+.statusSelect:focus {
+  outline: none;
+  border-color: #4CA69E;
+}
+
+.deleteButton {
+  width: 44px;
+  height: 44px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteButton:hover {
+  background: rgba(231, 76, 60, 0.2);
+}
+
+.deleteButton:focus {
+  outline: 2px solid #e74c3c;
+  outline-offset: 2px;
+}
+
+/* Signup Notes */
+.signupNotes {
+  width: 100%;
+  font-size: 12px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.notesLabel {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Error Card */
+.errorCard {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(231, 76, 60, 0.05) 100%);
+  border-left: 5px solid #e74c3c;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.errorCard p {
+  margin: 0;
+  color: #c0392b;
+  font-size: 15px;
+}
+
+.homeLink {
+  display: inline-block;
+  margin-top: 15px;
+  color: #4CA69E;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.homeLink:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .statsBar {
+    gap: 10px;
+  }
+
+  .statItem {
+    min-width: 70px;
+    padding: 12px 10px;
+  }
+
+  .statValue {
+    font-size: 22px;
+  }
+
+  .signupCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .signupMeta {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .signupActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .innerPage {
+    padding: 15px;
+  }
+
+  .filtersBar {
+    flex-direction: column;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .categoryHeader {
+    padding: 14px 16px;
+  }
+
+  .categoryCode {
+    font-size: 18px;
+  }
+
+  .signupGroup {
+    padding: 14px 16px;
+  }
+}

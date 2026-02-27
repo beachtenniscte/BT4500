@@ -1,113 +1,125 @@
 import { Link, useParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import apiService from '../services/api';
+import { useTournamentData, useModal } from '../hooks';
+import { TrophyIcon, CalendarIcon, LocationIcon, CloseIcon } from '../components/icons';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorState from '../components/ErrorState';
+import { formatDateRange, getCategoryLabel, getTierClass, getGenderFromCategory, DEFAULT_AVATAR } from '../utils';
 import styles from './TournamentDetail.module.css';
-
-// Default avatar SVG for players without photos
-const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="48" fill="%23e0e0e0"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23bdbdbd"/%3E%3Cellipse cx="50" cy="85" rx="28" ry="22" fill="%23bdbdbd"/%3E%3C/svg%3E';
 
 function TournamentDetail() {
   const { uuid } = useParams();
-  const [tournament, setTournament] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [winners, setWinners] = useState([]);
-  const [matchesByRound, setMatchesByRound] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadTournamentData();
-  }, [uuid]);
+  // Use custom hooks for data and modal management
+  const {
+    tournament,
+    categories,
+    loading,
+    error,
+    getWinnerForCategory
+  } = useTournamentData(uuid);
 
-  useEffect(() => {
-    if (selectedCategory && tournament?.status === 'completed') {
-      loadMatchesByCategory(selectedCategory);
-    }
-  }, [selectedCategory, tournament?.status]);
+  const modal = useModal();
 
-  const loadTournamentData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Modal-specific state
+  const [modalMatches, setModalMatches] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
 
-      // Get tournament info and categories
-      const data = await apiService.getTournament(uuid);
-      if (!data) {
-        setError('Torneio nao encontrado');
-        return;
-      }
+  // Registration level expansion state
+  const [expandedLevel, setExpandedLevel] = useState(null);
 
-      setTournament(data.tournament);
-      setCategories(data.categories || []);
+  // Memoize category groupings for registration section
+  const { level1Cats, level2Cats, hasLevel1Open, hasLevel2Open, hasAnyRegistration } = useMemo(() => {
+    const level1 = categories.filter(c => c.code?.endsWith('1'));
+    const level2 = categories.filter(c => c.code?.endsWith('2'));
 
-      // Load winners if tournament is completed
-      if (data.tournament.status === 'completed') {
-        const winnersData = await apiService.getTournamentWinners(uuid);
-        setWinners(winnersData || []);
+    const checkOpen = (cats) => cats.some(c =>
+      (c.registration_type === 'form' && c.registration_open) ||
+      (c.registration_type === 'external' && c.registration_url)
+    );
 
-        // Set default category if available
-        if (data.categories && data.categories.length > 0) {
-          setSelectedCategory(data.categories[0].code);
-        }
-      }
-    } catch (err) {
-      console.error('Error loading tournament:', err);
-      setError('Erro ao carregar torneio');
-    } finally {
-      setLoading(false);
-    }
-  };
+    return {
+      level1Cats: level1,
+      level2Cats: level2,
+      hasLevel1Open: checkOpen(level1),
+      hasLevel2Open: checkOpen(level2),
+      hasAnyRegistration: checkOpen([...level1, ...level2])
+    };
+  }, [categories]);
 
-  const loadMatchesByCategory = async (categoryCode) => {
+  const openCategoryModal = useCallback(async (categoryCode) => {
+    if (modal.isOpen && modal.data === categoryCode) return;
+
+    modal.open(categoryCode);
+    setModalLoading(true);
+
     try {
       const data = await apiService.getTournamentMatchesByRound(uuid, categoryCode);
-      setMatchesByRound(data || []);
+
+      // Deduplicate rounds
+      const deduplicatedRounds = [];
+      const seenRounds = new Set();
+
+      for (const roundGroup of (data || [])) {
+        if (!seenRounds.has(roundGroup.round)) {
+          seenRounds.add(roundGroup.round);
+          const seenMatchIds = new Set();
+          const uniqueMatches = roundGroup.matches.filter(m => {
+            if (seenMatchIds.has(m.id)) return false;
+            seenMatchIds.add(m.id);
+            return true;
+          });
+          deduplicatedRounds.push({ ...roundGroup, matches: uniqueMatches });
+        }
+      }
+
+      setModalMatches(deduplicatedRounds);
     } catch (err) {
       console.error('Error loading matches:', err);
+      setModalMatches([]);
+    } finally {
+      setModalLoading(false);
     }
-  };
+  }, [modal, uuid]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
+  const handleCloseModal = useCallback(() => {
+    modal.close();
+    setModalMatches([]);
+  }, [modal]);
 
-  const getTierClass = (tier) => {
-    const tierMap = {
-      'OURO': styles.tierOuro,
-      'PRATA': styles.tierPrata,
-      'BRONZE': styles.tierBronze
-    };
-    return tierMap[tier?.toUpperCase()] || '';
-  };
+  const toggleLevel = useCallback((level) => {
+    setExpandedLevel(prev => prev === level ? null : level);
+  }, []);
 
+  // Loading state
   if (loading) {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>
-          <Link to="/provas" className={styles.backButton}>
-            <span>&lt;&lt;</span>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
           </Link>
-          <div className={styles.loading}>A carregar...</div>
+          <LoadingSpinner message="A carregar torneio..." />
         </div>
       </div>
     );
   }
 
+  // Error state
   if (error || !tournament) {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>
-          <Link to="/provas" className={styles.backButton}>
-            <span>&lt;&lt;</span>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
           </Link>
-          <h1 className={styles.pageTitle}>ERRO</h1>
-          <div className={styles.errorCard}>
-            <p>{error || 'Torneio nao encontrado'}</p>
-            <Link to="/provas" className={styles.homeLink}>Voltar a Provas</Link>
-          </div>
+          <ErrorState
+            title="Erro"
+            message={error || 'Torneio nao encontrado'}
+            linkTo="/provas"
+            linkText="Voltar as Provas"
+          />
         </div>
       </div>
     );
@@ -118,57 +130,62 @@ function TournamentDetail() {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>
-          <Link to="/provas" className={styles.backButton}>
-            <span>&lt;&lt;</span>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
           </Link>
 
-          <h1 className={styles.pageTitle}>{tournament.name}</h1>
+          {/* Hero Section */}
+          <TournamentHero tournament={tournament} />
 
-          <div className={styles.mainCard}>
-            <div className={styles.upcomingSection}>
-              {/* Info Card */}
-              <div className={styles.infoCard}>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Data</span>
-                  <span className={styles.infoValue}>
-                    {formatDate(tournament.start_date)} - {formatDate(tournament.end_date)}
-                  </span>
-                </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Local</span>
-                  <span className={styles.infoValue}>{tournament.location}</span>
-                </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Tier</span>
-                  <span className={`${styles.tierBadge} ${getTierClass(tournament.tier)}`}>
-                    {tournament.tier}
-                  </span>
-                </div>
+          {/* Unified Registration Section - Grouped by Level */}
+          <div className={styles.registrationSection}>
+            <h2 className={styles.sectionTitle}>Inscricoes</h2>
+
+            {!hasAnyRegistration ? (
+              <div className={styles.registrationCard}>
+                <p className={styles.registrationText}>
+                  As inscricoes para este torneio estarao disponiveis em breve.
+                </p>
                 {categories.length > 0 && (
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Categorias</span>
-                    <span className={styles.infoValue}>
-                      {categories.map(c => c.code).join(', ')}
-                    </span>
+                  <div className={styles.categoriesPreview}>
+                    <span className={styles.categoriesLabel}>Categorias:</span>
+                    {categories.map(cat => (
+                      <span key={cat.code} className={styles.categoryTag}>{cat.code}</span>
+                    ))}
                   </div>
                 )}
               </div>
+            ) : (
+              <div className={styles.registrationLevels}>
+                {/* Level 1 */}
+                {level1Cats.length > 0 && (
+                  <LevelAccordion
+                    level={1}
+                    title="Nivel 1"
+                    subtitle="Competitivo"
+                    categories={level1Cats}
+                    isExpanded={expandedLevel === 1}
+                    hasOpenRegistration={hasLevel1Open}
+                    onToggle={() => toggleLevel(1)}
+                    tournamentUuid={uuid}
+                  />
+                )}
 
-              {/* Registration Buttons (Placeholders) */}
-              <div className={styles.registrationButtons}>
-                <h4>Inscricoes</h4>
-                <button className={styles.registerBtn} disabled>
-                  Registo Nivel 1
-                </button>
-                <button className={styles.registerBtn} disabled>
-                  Registo Nivel 2
-                </button>
-                <button className={styles.registerBtn} disabled>
-                  Registo Nivel 3
-                </button>
-                <p className={styles.comingSoon}>Em breve...</p>
+                {/* Level 2 */}
+                {level2Cats.length > 0 && (
+                  <LevelAccordion
+                    level={2}
+                    title="Nivel 2"
+                    subtitle="Lazer"
+                    categories={level2Cats}
+                    isExpanded={expandedLevel === 2}
+                    hasOpenRegistration={hasLevel2Open}
+                    onToggle={() => toggleLevel(2)}
+                    tournamentUuid={uuid}
+                  />
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -179,110 +196,303 @@ function TournamentDetail() {
   return (
     <div className={styles.container}>
       <div className={styles.innerPage}>
-        <Link to="/provas" className={styles.backButton}>
-          <span>&lt;&lt;</span>
+        <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+          <span>←</span> Voltar
         </Link>
 
-        <h1 className={styles.pageTitle}>{tournament.name}</h1>
+        {/* Hero Section */}
+        <TournamentHero tournament={tournament} />
 
-        <div className={styles.mainCard}>
-          {/* Winners Section - Horizontal Scroll */}
-          {winners.length > 0 && (
-            <div className={styles.winnersSection}>
-              <h3 className={styles.winnersSectionTitle}>Vencedores</h3>
-              <div className={styles.winnersScroll}>
-                {winners.map((w, idx) => (
-                  <div key={`${w.category_code}-${idx}`} className={styles.winnerCard}>
-                    <div className={styles.winnerPhotos}>
-                      <img
-                        src={w.player1_photo || defaultAvatar}
-                        alt={w.player1_name}
-                        onError={(e) => { e.target.src = defaultAvatar; }}
-                      />
-                      <img
-                        src={w.player2_photo || defaultAvatar}
-                        alt={w.player2_name}
-                        onError={(e) => { e.target.src = defaultAvatar; }}
-                      />
-                    </div>
-                    <span className={styles.winnerNames}>
-                      {w.player1_name?.split(' ')[0]} / {w.player2_name?.split(' ')[0]}
-                    </span>
-                    <span className={styles.winnerCategory}>{w.category_code}</span>
-                  </div>
-                ))}
-              </div>
+        {/* Winners by Category */}
+        <div className={styles.winnersSection}>
+          <h2 className={styles.sectionTitle}>
+            <TrophyIcon /> Vencedores por Categoria
+          </h2>
+          <p className={styles.sectionSubtitle}>
+            Clique numa categoria para ver todos os resultados
+          </p>
+
+          <div className={styles.categoryGrid}>
+            {categories.map(cat => (
+              <CategoryCard
+                key={cat.code}
+                category={cat}
+                winner={getWinnerForCategory(cat.code)}
+                onClick={() => openCategoryModal(cat.code)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Results Modal */}
+      {modal.isOpen && (
+        <ResultsModal
+          categoryCode={modal.data}
+          matches={modalMatches}
+          loading={modalLoading}
+          onClose={handleCloseModal}
+          modalRef={modal.modalRef}
+          overlayProps={modal.overlayProps}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============ Sub-Components ============
+
+function TournamentHero({ tournament }) {
+  return (
+    <div className={styles.heroSection}>
+      <span className={`${styles.tierBadge} ${getTierClass(tournament.tier, styles)}`}>
+        {tournament.tier}
+      </span>
+      <h1 className={styles.heroTitle}>{tournament.name}</h1>
+      <div className={styles.heroMeta}>
+        <span className={styles.metaItem}>
+          <CalendarIcon />
+          {formatDateRange(tournament.start_date, tournament.end_date)}
+        </span>
+        <span className={styles.metaItem}>
+          <LocationIcon />
+          {tournament.location}
+        </span>
+      </div>
+      <div className={styles.statusBadge} data-status={tournament.status}>
+        {tournament.status === 'completed' ? 'Concluido' :
+         tournament.status === 'scheduled' ? 'Brevemente' : 'Em Progresso'}
+      </div>
+    </div>
+  );
+}
+
+function LevelAccordion({
+  level,
+  title,
+  subtitle,
+  categories,
+  isExpanded,
+  hasOpenRegistration,
+  onToggle,
+  tournamentUuid
+}) {
+  const panelId = `level-${level}-panel`;
+  const buttonId = `level-${level}-button`;
+
+  return (
+    <div className={styles.levelGroup}>
+      <button
+        id={buttonId}
+        className={`${styles.levelHeader} ${isExpanded ? styles.levelHeaderExpanded : ''} ${!hasOpenRegistration ? styles.levelHeaderClosed : ''}`}
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
+      >
+        <div className={styles.levelInfo}>
+          <span className={styles.levelTitle}>{title}</span>
+          <span className={styles.levelSubtitle}>{subtitle}</span>
+        </div>
+        <span className={styles.levelChevron} aria-hidden="true">
+          {isExpanded ? '−' : '+'}
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div
+          id={panelId}
+          className={styles.levelContent}
+          role="region"
+          aria-labelledby={buttonId}
+        >
+          {categories.map(cat => (
+            <CategoryRegistrationItem
+              key={cat.code}
+              category={cat}
+              tournamentUuid={tournamentUuid}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoryRegistrationItem({ category, tournamentUuid }) {
+  const hasFormReg = category.registration_type === 'form' && category.registration_open;
+  const hasExternalReg = category.registration_type === 'external' && category.registration_url;
+  const genderLabel = getGenderFromCategory(category.code);
+
+  if (!hasFormReg && !hasExternalReg) {
+    return (
+      <div className={styles.regSubItem}>
+        <span className={styles.regGender}>{genderLabel}</span>
+        <span className={styles.regClosed}>Em breve</span>
+      </div>
+    );
+  }
+
+  if (hasFormReg) {
+    return (
+      <Link
+        to={`/tournament/${tournamentUuid}/register?category=${category.code}`}
+        className={styles.regSubItem}
+      >
+        <span className={styles.regGender}>{genderLabel}</span>
+        <span className={styles.regAction}>Inscrever →</span>
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={category.registration_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={styles.regSubItem}
+    >
+      <span className={styles.regGender}>{genderLabel}</span>
+      <span className={styles.regActionExternal}>TieTennis ↗</span>
+    </a>
+  );
+}
+
+function CategoryCard({ category, winner, onClick }) {
+  return (
+    <button
+      className={styles.categoryCard}
+      onClick={onClick}
+      aria-label={`Ver resultados de ${getCategoryLabel(category.code)}`}
+    >
+      <div className={styles.categoryHeader}>
+        <span className={styles.categoryCode}>{category.code}</span>
+        <span className={styles.categoryName}>{getCategoryLabel(category.code)}</span>
+      </div>
+
+      {winner ? (
+        <div className={styles.winnerDisplay}>
+          <div className={styles.winnerPhotos}>
+            <img
+              src={winner.player1_photo || DEFAULT_AVATAR}
+              alt={winner.player1_name}
+              loading="lazy"
+              width="48"
+              height="48"
+              onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+            />
+            <img
+              src={winner.player2_photo || DEFAULT_AVATAR}
+              alt={winner.player2_name}
+              loading="lazy"
+              width="48"
+              height="48"
+              onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+            />
+          </div>
+          <div className={styles.winnerInfo}>
+            <span className={styles.winnerLabel}>
+              <TrophyIcon size={14} /> Vencedor
+            </span>
+            <span className={styles.winnerNames}>
+              {winner.player1_name?.split(' ')[0]} & {winner.player2_name?.split(' ')[0]}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.noWinner}>
+          <span>Sem resultados</span>
+        </div>
+      )}
+
+      <div className={styles.viewResults}>
+        Ver resultados →
+      </div>
+    </button>
+  );
+}
+
+function ResultsModal({ categoryCode, matches, loading, onClose, modalRef, overlayProps }) {
+  return (
+    <div
+      className={styles.modalOverlay}
+      {...overlayProps}
+    >
+      <div
+        ref={modalRef}
+        className={styles.modalContent}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        tabIndex={-1}
+      >
+        <div className={styles.modalHeader}>
+          <div>
+            <h2 id="modal-title" className={styles.modalTitle}>
+              {categoryCode}
+            </h2>
+            <p className={styles.modalSubtitle}>{getCategoryLabel(categoryCode)}</p>
+          </div>
+          <button
+            className={styles.modalClose}
+            onClick={onClose}
+            aria-label="Fechar modal"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div className={styles.modalBody}>
+          {loading ? (
+            <div className={styles.modalLoading}>
+              <div className={styles.spinner}></div>
+              <span>A carregar resultados...</span>
             </div>
-          )}
-
-          {/* Category Filter */}
-          {categories.length > 0 && (
-            <div className={styles.categoryFilter}>
-              {categories.map(cat => (
-                <button
-                  key={cat.code}
-                  className={`${styles.categoryBtn} ${selectedCategory === cat.code ? styles.categoryBtnActive : ''}`}
-                  onClick={() => setSelectedCategory(cat.code)}
-                >
-                  {cat.code}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Results by Round */}
-          {matchesByRound.length > 0 && (
-            <div className={styles.resultsSection}>
-              {matchesByRound.map(roundGroup => (
-                <div key={roundGroup.round} className={styles.roundGroup}>
-                  <h4 className={styles.roundTitle}>{roundGroup.round}</h4>
+          ) : matches.length > 0 ? (
+            <div className={styles.matchesContainer}>
+              {matches.map((roundGroup, roundIndex) => (
+                <div key={`${roundGroup.round}-${roundIndex}`} className={styles.roundGroup}>
+                  <h3 className={styles.roundTitle}>{roundGroup.round}</h3>
                   <div className={styles.matchesList}>
-                    {roundGroup.matches.map(match => (
-                      <div key={match.id} className={styles.matchCard}>
-                        <span className={`${styles.teamName} ${styles.team1} ${match.winner_team_id === match.team1_id ? styles.winner : ''}`}>
-                          {match.team1_name || 'TBD'}
-                        </span>
-                        <span className={styles.score}>
-                          {match.result || 'vs'}
-                        </span>
-                        <span className={`${styles.teamName} ${styles.team2} ${match.winner_team_id === match.team2_id ? styles.winner : ''}`}>
-                          {match.team2_name || 'TBD'}
-                        </span>
-                      </div>
+                    {roundGroup.matches.map((match, matchIndex) => (
+                      <MatchCard key={`${match.id}-${matchIndex}`} match={match} />
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-          )}
-
-          {/* No matches message */}
-          {matchesByRound.length === 0 && selectedCategory && (
+          ) : (
             <div className={styles.noMatches}>
               <p>Nao ha resultados disponiveis para esta categoria.</p>
             </div>
           )}
-
-          {/* Tournament Info Footer */}
-          <div className={styles.tournamentInfo}>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Data</span>
-              <span className={styles.infoValue}>
-                {formatDate(tournament.start_date)} - {formatDate(tournament.end_date)}
-              </span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Local</span>
-              <span className={styles.infoValue}>{tournament.location}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Tier</span>
-              <span className={`${styles.tierBadge} ${getTierClass(tournament.tier)}`}>
-                {tournament.tier}
-              </span>
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchCard({ match }) {
+  return (
+    <div className={styles.matchCard}>
+      <div className={`${styles.matchTeam} ${match.winner_team_id === match.team1_id ? styles.matchWinner : ''}`}>
+        <span className={styles.teamName}>{match.team1_name || 'TBD'}</span>
+        {match.winner_team_id === match.team1_id && (
+          <span className={styles.winnerBadge}>
+            <TrophyIcon size={16} />
+          </span>
+        )}
+      </div>
+      <div className={styles.matchScore}>
+        {match.result || 'vs'}
+      </div>
+      <div className={`${styles.matchTeam} ${match.winner_team_id === match.team2_id ? styles.matchWinner : ''}`}>
+        <span className={styles.teamName}>{match.team2_name || 'TBD'}</span>
+        {match.winner_team_id === match.team2_id && (
+          <span className={styles.winnerBadge}>
+            <TrophyIcon size={16} />
+          </span>
+        )}
       </div>
     </div>
   );

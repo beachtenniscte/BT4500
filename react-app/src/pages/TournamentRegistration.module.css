@@ -1,0 +1,556 @@
+/* Tournament Registration Page Styles */
+
+.container {
+  min-height: 100vh;
+  padding-top: 60px;
+}
+
+/* Visually hidden but accessible to screen readers */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.requiredNotice {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 20px 0;
+}
+
+.requiredNotice span {
+  color: #e74c3c;
+}
+
+.inputWrapper {
+  width: 100%;
+}
+
+.inputHint {
+  font-size: 12px;
+  color: #888;
+  margin: 8px 0 0 0;
+}
+
+.content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Loading & Error States */
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: white;
+  text-align: center;
+  gap: 15px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #f39c12;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.backLink {
+  color: #f39c12;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.emptyState h2 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.emptyState p {
+  opacity: 0.8;
+  margin: 0;
+}
+
+/* Success State */
+.successState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: white;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  color: #4CA69E;
+  margin-bottom: 20px;
+}
+
+.successIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.successState h2 {
+  font-size: 28px;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.successState p {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.successNote {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 5px;
+}
+
+.successActions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.newSignupButton {
+  background: linear-gradient(135deg, #4CA69E 0%, #3d8a82 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.newSignupButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 166, 158, 0.4);
+}
+
+.viewTournamentLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 24px;
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.viewTournamentLink:hover {
+  border-color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Tournament Header */
+.tournamentHeader {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.tierBadge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.tierBadge.ouro {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.tierBadge.prata {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.tierBadge.bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
+}
+
+.tournamentName {
+  font-size: 24px;
+  font-weight: 800;
+  color: #333;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
+}
+
+.tournamentInfo {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* Form Card */
+.formCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 25px;
+  animation: fadeIn 0.5s ease-out 0.1s backwards;
+}
+
+.formSection {
+  margin-bottom: 25px;
+}
+
+.formSection:last-of-type {
+  margin-bottom: 20px;
+}
+
+.sectionLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.sectionHint {
+  font-size: 13px;
+  color: #666;
+  margin: -5px 0 12px 0;
+}
+
+/* Category Selector */
+.categorySelector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.categoryButton {
+  flex: 1;
+  min-width: 100px;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.categoryButton:hover {
+  border-color: #4CA69E;
+}
+
+.categoryButtonActive {
+  border-color: #4CA69E;
+  background: linear-gradient(135deg, rgba(76, 166, 158, 0.1) 0%, rgba(76, 166, 158, 0.05) 100%);
+}
+
+.catCode {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.catName {
+  display: block;
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* Signup Type Selector */
+.signupTypeSelector {
+  display: flex;
+  gap: 12px;
+}
+
+.typeButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.typeButton:hover {
+  border-color: #774494;
+}
+
+.typeButtonActive {
+  border-color: #774494;
+  background: linear-gradient(135deg, rgba(119, 68, 148, 0.1) 0%, rgba(119, 68, 148, 0.05) 100%);
+}
+
+.typeIcon {
+  width: 32px;
+  height: 32px;
+  color: #774494;
+}
+
+.typeButton span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.typeButton small {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Input Group */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #4CA69E;
+}
+
+.input::placeholder {
+  color: #aaa;
+}
+
+/* Pot Selector */
+.potSelector {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.potButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.potButton:hover {
+  border-color: #f39c12;
+}
+
+.potButtonActive {
+  border-color: #f39c12;
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, rgba(243, 156, 18, 0.05) 100%);
+}
+
+.potLabel {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.potDesc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #4CA69E;
+}
+
+.textarea::placeholder {
+  color: #aaa;
+}
+
+/* Error Message */
+.errorMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(231, 76, 60, 0.1);
+  border-left: 4px solid #e74c3c;
+  border-radius: 8px;
+  color: #c0392b;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.errorIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Submit Button */
+.submitButton {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding-top: 56px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+
+  .tournamentHeader {
+    padding: 20px;
+  }
+
+  .tournamentName {
+    font-size: 20px;
+  }
+
+  .formCard {
+    padding: 20px;
+  }
+
+  .signupTypeSelector {
+    flex-direction: column;
+  }
+
+  .categoryButton {
+    min-width: 80px;
+    padding: 10px 12px;
+  }
+
+  .catCode {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 12px;
+  }
+
+  .tournamentHeader,
+  .formCard {
+    border-radius: 10px;
+  }
+
+  .potSelector {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .categorySelector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .container {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+}

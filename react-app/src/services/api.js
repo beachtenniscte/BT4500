@@ -694,6 +694,76 @@ const apiService = {
       body: JSON.stringify(data),
     });
   },
+
+  // ==================== SIGNUP/REGISTRATION ENDPOINTS ====================
+
+  /**
+   * Get tournament signup info and categories with registration config
+   * GET /signups/tournament/:uuid
+   */
+  getTournamentSignupInfo: async (uuid) => {
+    try {
+      return await fetchAPI(`/signups/tournament/${uuid}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Create a new signup (public - no auth required)
+   * POST /signups
+   */
+  createSignup: async (data) => {
+    return await fetchAPI('/signups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get all signups for a tournament (admin only)
+   * GET /signups/admin/tournament/:uuid
+   */
+  getAdminTournamentSignups: async (uuid, filters = {}) => {
+    try {
+      const query = new URLSearchParams(filters).toString();
+      return await fetchAPI(`/signups/admin/tournament/${uuid}${query ? `?${query}` : ''}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Update signup status (admin only)
+   * PUT /signups/admin/:uuid/status
+   */
+  updateSignupStatus: async (signupUuid, status, pairedWithId = null) => {
+    return await fetchAPI(`/signups/admin/${signupUuid}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, pairedWithId }),
+    });
+  },
+
+  /**
+   * Delete a signup (admin only)
+   * DELETE /signups/admin/:uuid
+   */
+  deleteSignup: async (signupUuid) => {
+    return await fetchAPI(`/signups/admin/${signupUuid}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Update category registration config (admin only)
+   * PUT /signups/admin/category/:id/config
+   */
+  updateCategoryRegistrationConfig: async (categoryId, config) => {
+    return await fetchAPI(`/signups/admin/category/${categoryId}/config`, {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  },
 };
 
 /**

@@ -354,16 +354,25 @@ router.post('/tournaments', authenticate, adminOnly, async (req, res) => {
     });
 
     // Add tournament categories if provided
+    // categories can be an array of strings (category codes) or objects with registration config
     let addedCategories = [];
     if (categories && Array.isArray(categories) && categories.length > 0) {
-      for (const categoryCode of categories) {
+      for (const category of categories) {
         try {
-          const added = await Tournament.addCategoryByCode(tournament.id, categoryCode);
+          // Support both simple string format and object format with registration config
+          const categoryCode = typeof category === 'string' ? category : category.code;
+          const registrationConfig = typeof category === 'object' ? {
+            registrationType: category.registrationType || 'none',
+            registrationUrl: category.registrationUrl || null,
+            registrationOpen: category.registrationOpen !== false
+          } : {};
+
+          const added = await Tournament.addCategoryByCode(tournament.id, categoryCode, 16, 'mixed', registrationConfig);
           if (added) {
             addedCategories.push(categoryCode);
           }
         } catch (catError) {
-          console.error(`Failed to add category ${categoryCode}:`, catError);
+          console.error(`Failed to add category ${typeof category === 'string' ? category : category.code}:`, catError);
         }
       }
     }

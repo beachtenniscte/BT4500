@@ -14,7 +14,7 @@ function AdminImportResults() {
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState(null);
   const [calculatePoints, setCalculatePoints] = useState(true);
-  const [clearExisting, setClearExisting] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     checkAdminAndLoadData();
@@ -51,7 +51,6 @@ function AdminImportResults() {
   const handleTournamentSelect = async (tournamentId) => {
     setSelectedTournamentId(tournamentId);
     setSelectedTournamentInfo(null);
-    setClearExisting(false);
     setImportResult(null);
     setError(null);
 
@@ -66,6 +65,35 @@ function AdminImportResults() {
       } catch (err) {
         console.error('Error fetching tournament info:', err);
       }
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!selectedTournamentId || !selectedTournamentInfo) return;
+
+    const tournament = tournaments.find(t => t.id.toString() === selectedTournamentId);
+    if (!tournament) return;
+
+    const confirmClear = window.confirm(
+      `Tem a certeza que deseja apagar todos os resultados do torneio "${tournament.name}"?\n\nEsta ação não pode ser revertida.`
+    );
+
+    if (!confirmClear) return;
+
+    setClearing(true);
+    setError(null);
+
+    try {
+      await apiService.clearTournamentResults(tournament.uuid);
+
+      // Refresh tournament info
+      const info = await apiService.getTournamentWithStatus(tournament.uuid);
+      setSelectedTournamentInfo(info);
+      setImportResult({ message: 'Histórico apagado com sucesso!' });
+    } catch (err) {
+      setError(err.message || 'Falha ao apagar histórico');
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -100,9 +128,9 @@ function AdminImportResults() {
       return;
     }
 
-    // Check if tournament has results and clearExisting is not checked
-    if (selectedTournamentInfo?.hasResults && !clearExisting) {
-      setError('Este torneio ja tem resultados. Marque a opcao "Substituir dados existentes" para continuar.');
+    // Check if tournament has results - must delete first
+    if (selectedTournamentInfo?.hasResults) {
+      setError('Este torneio já tem resultados. Apague o histórico primeiro antes de importar.');
       return;
     }
 
@@ -114,14 +142,13 @@ function AdminImportResults() {
       let result;
       if (files.length === 1) {
         // Single file import
-        result = await apiService.importCSV(files[0], selectedTournamentId, calculatePoints, clearExisting);
+        result = await apiService.importCSV(files[0], selectedTournamentId, calculatePoints, false);
       } else {
         // Multiple files import
-        result = await apiService.importCSVMultiple(files, selectedTournamentId, calculatePoints, clearExisting);
+        result = await apiService.importCSVMultiple(files, selectedTournamentId, calculatePoints, false);
       }
       setImportResult(result);
       setFiles([]);
-      setClearExisting(false);
       // Reset file input
       const fileInput = document.getElementById('csvFileInput');
       if (fileInput) fileInput.value = '';
@@ -211,17 +238,16 @@ function AdminImportResults() {
               {selectedTournamentInfo?.hasResults && (
                 <div className={styles.warningCard}>
                   <p>
-                    <strong>Atencao:</strong> Este torneio ja tem {selectedTournamentInfo.matchCount} jogos registados.
+                    <strong>Atenção:</strong> Este torneio já tem {selectedTournamentInfo.matchCount} jogos registados.
+                    Para importar novos dados, apague primeiro o histórico existente.
                   </p>
-                  <label className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={clearExisting}
-                      onChange={(e) => setClearExisting(e.target.checked)}
-                      className={styles.checkbox}
-                    />
-                    Substituir dados existentes
-                  </label>
+                  <button
+                    onClick={handleClearHistory}
+                    disabled={clearing}
+                    className={styles.clearButton}
+                  >
+                    {clearing ? 'A apagar...' : 'Apagar Histórico'}
+                  </button>
                 </div>
               )}
 
@@ -264,7 +290,7 @@ function AdminImportResults() {
 
               <button
                 onClick={handleImport}
-                disabled={files.length === 0 || importing || !selectedTournamentId || (selectedTournamentInfo?.hasResults && !clearExisting)}
+                disabled={files.length === 0 || importing || !selectedTournamentId || selectedTournamentInfo?.hasResults}
                 className={styles.submitButton}
               >
                 {importing
