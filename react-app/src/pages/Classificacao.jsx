@@ -23,7 +23,7 @@ function Classificacao() {
       const [maleData, femaleData, mixedData] = await Promise.all([
         apiService.getClassification('M', 3),
         apiService.getClassification('F', 3),
-        apiService.getClassification(null, 3) // Mixed/All
+        apiService.getClassification('MX', 3) // Mixed category
       ]);
 
       setMaleRankings(maleData || []);
@@ -51,7 +51,7 @@ function Classificacao() {
           break;
         case 'mixed':
         default:
-          data = await apiService.getClassification(null, 50);
+          data = await apiService.getClassification('MX', 50);
           break;
       }
       setExpandedData(data || []);

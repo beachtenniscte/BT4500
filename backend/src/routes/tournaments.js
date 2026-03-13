@@ -269,6 +269,7 @@ router.post('/:uuid/calculate-points', authenticate, organizerOrAdmin, async (re
 /**
  * POST /api/tournaments/import
  * Import tournament from CSV
+ * Body: { tournamentId: number, calculatePoints: boolean, clearExisting: boolean }
  */
 router.post('/import', authenticate, adminOnly, upload.single('file'), async (req, res) => {
   try {
@@ -276,12 +277,34 @@ router.post('/import', authenticate, adminOnly, upload.single('file'), async (re
       return res.status(400).json({ error: 'CSV file is required' });
     }
 
-    const result = await CSVImportService.importFromCSV(req.file.path, {
-      calculatePoints: req.body.calculatePoints !== 'false'
+    const tournamentId = parseInt(req.body.tournamentId);
+    if (!tournamentId) {
+      return res.status(400).json({ error: 'Tournament ID is required. Please select a tournament first.' });
+    }
+
+    console.log(`\n=== CSV IMPORT START ===`);
+    console.log(`Tournament ID: ${tournamentId}`);
+    console.log(`File: ${req.file.originalname}`);
+    console.log(`Calculate points: ${req.body.calculatePoints !== 'false'}`);
+    console.log(`Clear existing: ${req.body.clearExisting === 'true'}`);
+
+    const result = await CSVImportService.importFromCSV(req.file.path, tournamentId, {
+      calculatePoints: req.body.calculatePoints !== 'false',
+      clearExisting: req.body.clearExisting === 'true'
     });
 
     // Clean up uploaded file
     fs.unlinkSync(req.file.path);
+
+    console.log(`=== CSV IMPORT COMPLETE ===`);
+    console.log(`Categories: ${result.categories.length}`);
+    console.log(`Players: ${result.players.length}`);
+    console.log(`Teams: ${result.teams.length}`);
+    console.log(`Matches: ${result.matches.length}`);
+    console.log(`Errors: ${result.errors.length}`);
+    if (result.pointsAwarded) {
+      console.log(`Points awarded to ${result.pointsAwarded.teamsProcessed} teams`);
+    }
 
     res.json({
       message: 'Tournament imported successfully',

@@ -27,99 +27,86 @@ IF NOT EXISTS (SELECT 1 FROM categories WHERE code = 'MX1')
 IF NOT EXISTS (SELECT 1 FROM categories WHERE code = 'MX2')
   INSERT INTO categories (code, name, gender, level, description) VALUES ('MX2', 'Pares Mistos Nivel 2', 'MX', 2, 'Mixed Doubles Level 2 (Intermediate)');
 
+-- Level 3 categories for 2026+ (uncomment when needed)
+-- IF NOT EXISTS (SELECT 1 FROM categories WHERE code = 'F3')
+--   INSERT INTO categories (code, name, gender, level, description) VALUES ('F3', 'Pares Femininos Nivel 3', 'F', 3, 'Womens Doubles Level 3 (Beginner)');
+-- IF NOT EXISTS (SELECT 1 FROM categories WHERE code = 'M3')
+--   INSERT INTO categories (code, name, gender, level, description) VALUES ('M3', 'Pares Masculinos Nivel 3', 'M', 3, 'Mens Doubles Level 3 (Beginner)');
+-- IF NOT EXISTS (SELECT 1 FROM categories WHERE code = 'MX3')
+--   INSERT INTO categories (code, name, gender, level, description) VALUES ('MX3', 'Pares Mistos Nivel 3', 'MX', 3, 'Mixed Doubles Level 3 (Beginner)');
+
 PRINT 'Categories seeded';
 GO
 
 -- ========================================
 -- 2. Seed Points Table
--- Points depend on: Tier (OURO/PRATA/BRONZE) and Level (1/2)
--- Tier multipliers: OURO = 1.5, PRATA = 1.0, BRONZE = 0.75
--- Level multipliers: Level 1 = 100%, Level 2 = 70%
+-- Points based on Season + Classification ID (1-6)
+-- From Pontuacoes.csv (2025 season)
 -- ========================================
 
 -- Clear existing points to reseed with new structure
 DELETE FROM points_table;
 GO
 
--- OURO Level 1 (Base * 1.5 * 1.0)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Campeão', 7, 600, 'OURO Nivel 1 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'Final', 6, 420, 'OURO Nivel 1 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'Semifinal', 5, 270, 'OURO Nivel 1 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'Quartas de Final', 4, 150, 'OURO Nivel 1 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'R16', 3, 75, 'OURO Nivel 1 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'R32', 2, 38, 'OURO Nivel 1 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'Fase de grupos', 1, 15, 'OURO Nivel 1 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 1º', 1, 23, 'OURO Nivel 1 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 2º', 1, 15, 'OURO Nivel 1 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 3º', 1, 11, 'OURO Nivel 1 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 4º', 1, 8, 'OURO Nivel 1 - 4º no grupo');
+-- SEASON 2025 - OURO Level 1
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 1, 1500);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 2, 1000);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 3, 667);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 4, 444);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 5, 296);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 1, 6, 198);
 
--- OURO Level 2 (Base * 1.5 * 0.7)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Campeão', 7, 420, 'OURO Nivel 2 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'Final', 6, 294, 'OURO Nivel 2 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'Semifinal', 5, 189, 'OURO Nivel 2 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'Quartas de Final', 4, 105, 'OURO Nivel 2 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'R16', 3, 53, 'OURO Nivel 2 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'R32', 2, 26, 'OURO Nivel 2 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'Fase de grupos', 1, 11, 'OURO Nivel 2 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 1º', 1, 16, 'OURO Nivel 2 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 2º', 1, 11, 'OURO Nivel 2 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 3º', 1, 8, 'OURO Nivel 2 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 4º', 1, 5, 'OURO Nivel 2 - 4º no grupo');
+-- SEASON 2025 - OURO Level 2
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 1, 444);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 2, 296);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 3, 198);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 4, 132);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 5, 88);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'OURO', 2, 6, 59);
 
--- PRATA Level 1 (Base * 1.0 * 1.0)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Campeão', 7, 400, 'PRATA Nivel 1 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'Final', 6, 280, 'PRATA Nivel 1 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'Semifinal', 5, 180, 'PRATA Nivel 1 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'Quartas de Final', 4, 100, 'PRATA Nivel 1 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'R16', 3, 50, 'PRATA Nivel 1 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'R32', 2, 25, 'PRATA Nivel 1 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'Fase de grupos', 1, 10, 'PRATA Nivel 1 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 1º', 1, 15, 'PRATA Nivel 1 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 2º', 1, 10, 'PRATA Nivel 1 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 3º', 1, 7, 'PRATA Nivel 1 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 4º', 1, 5, 'PRATA Nivel 1 - 4º no grupo');
+-- SEASON 2025 - PRATA Level 1
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 1, 750);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 2, 500);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 3, 333);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 4, 222);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 5, 148);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 1, 6, 99);
 
--- PRATA Level 2 (Base * 1.0 * 0.7)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Campeão', 7, 280, 'PRATA Nivel 2 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'Final', 6, 196, 'PRATA Nivel 2 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'Semifinal', 5, 126, 'PRATA Nivel 2 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'Quartas de Final', 4, 70, 'PRATA Nivel 2 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'R16', 3, 35, 'PRATA Nivel 2 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'R32', 2, 18, 'PRATA Nivel 2 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'Fase de grupos', 1, 7, 'PRATA Nivel 2 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 1º', 1, 11, 'PRATA Nivel 2 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 2º', 1, 7, 'PRATA Nivel 2 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 3º', 1, 5, 'PRATA Nivel 2 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 4º', 1, 4, 'PRATA Nivel 2 - 4º no grupo');
+-- SEASON 2025 - PRATA Level 2
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 1, 222);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 2, 148);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 3, 99);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 4, 66);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 5, 44);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'PRATA', 2, 6, 29);
 
--- BRONZE Level 1 (Base * 0.75 * 1.0)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Campeão', 7, 300, 'BRONZE Nivel 1 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'Final', 6, 210, 'BRONZE Nivel 1 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'Semifinal', 5, 135, 'BRONZE Nivel 1 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'Quartas de Final', 4, 75, 'BRONZE Nivel 1 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'R16', 3, 38, 'BRONZE Nivel 1 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'R32', 2, 19, 'BRONZE Nivel 1 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'Fase de grupos', 1, 8, 'BRONZE Nivel 1 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 1º', 1, 12, 'BRONZE Nivel 1 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 2º', 1, 8, 'BRONZE Nivel 1 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 3º', 1, 6, 'BRONZE Nivel 1 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 4º', 1, 4, 'BRONZE Nivel 1 - 4º no grupo');
+-- SEASON 2025 - BRONZE Level 1
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 1, 375);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 2, 250);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 3, 167);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 4, 111);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 5, 74);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 1, 6, 49);
 
--- BRONZE Level 2 (Base * 0.75 * 0.7)
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Campeão', 7, 210, 'BRONZE Nivel 2 - Campeão');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'Final', 6, 147, 'BRONZE Nivel 2 - Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'Semifinal', 5, 95, 'BRONZE Nivel 2 - Semifinal');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'Quartas de Final', 4, 53, 'BRONZE Nivel 2 - Quartas de Final');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'R16', 3, 26, 'BRONZE Nivel 2 - R16');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'R32', 2, 13, 'BRONZE Nivel 2 - R32');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'Fase de grupos', 1, 5, 'BRONZE Nivel 2 - Fase de grupos');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 1º', 1, 8, 'BRONZE Nivel 2 - 1º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 2º', 1, 5, 'BRONZE Nivel 2 - 2º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 3º', 1, 4, 'BRONZE Nivel 2 - 3º no grupo');
-INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 4º', 1, 3, 'BRONZE Nivel 2 - 4º no grupo');
+-- SEASON 2025 - BRONZE Level 2
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 1, 111);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 2, 74);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 3, 49);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 4, 33);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 5, 22);
+INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2025, 'BRONZE', 2, 6, 15);
 
-PRINT 'Points table seeded (with tier + level combinations)';
+-- Copy 2025 to 2026 as placeholder (update when 2026 rules are finalized)
+INSERT INTO points_table (season, tier, level, classification_id, points)
+SELECT 2026, tier, level, classification_id, points
+FROM points_table
+WHERE season = 2025;
+
+-- NOTE: Level 3 for 2026 - add when rules are defined
+-- INSERT INTO points_table (season, tier, level, classification_id, points) VALUES (2026, 'OURO', 3, 1, TBD);
+-- etc.
+
+PRINT 'Points table seeded with season-based classification IDs';
 GO
 
 -- ========================================

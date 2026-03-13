@@ -248,7 +248,7 @@ BEGIN
 END
 GO
 
--- Points table
+-- Points table (uses season + classification_id 1-6)
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[points_table]') AND type in (N'U'))
 BEGIN
     PRINT 'Clearing Points Table...'
@@ -259,13 +259,12 @@ ELSE
 BEGIN
     CREATE TABLE points_table (
       id INT IDENTITY(1,1) PRIMARY KEY,
+      season INT NOT NULL DEFAULT 2025,
       tier NVARCHAR(10) NOT NULL CHECK (tier IN ('OURO', 'PRATA', 'BRONZE')),
-      level INT NOT NULL DEFAULT 1 CHECK (level IN (1, 2)),
-      round_name NVARCHAR(50) NOT NULL,
-      round_order INT NOT NULL,
+      level INT NOT NULL DEFAULT 1 CHECK (level IN (1, 2, 3)),
+      classification_id INT NOT NULL CHECK (classification_id BETWEEN 1 AND 6),
       points INT NOT NULL,
-      description NVARCHAR(100) NULL,
-      CONSTRAINT unique_tier_level_round UNIQUE (tier, level, round_name)
+      CONSTRAINT unique_season_tier_level_class UNIQUE (season, tier, level, classification_id)
     );
 END
 GO

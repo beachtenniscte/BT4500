@@ -264,13 +264,25 @@ class CSVImportService {
 
       // Award points after import
       if (options.calculatePoints !== false) {
+        console.log(`\n--- Calculating points for tournament ${tournament.id} ---`);
         try {
           const pointsResult = await PointsService.awardTournamentPoints(tournament.id);
           results.pointsAwarded = pointsResult;
+          console.log(`Points calculation complete: ${pointsResult.teamsProcessed} teams processed`);
         } catch (pointsError) {
+          console.error('Points calculation error:', pointsError);
           results.errors.push({ error: `Points calculation failed: ${pointsError.message}` });
         }
+      } else {
+        console.log('Points calculation skipped (calculatePoints=false)');
       }
+
+      console.log(`\n--- Import Summary ---`);
+      console.log(`Categories: ${results.categories.length}`);
+      console.log(`Players created/found: ${results.players.length}`);
+      console.log(`Teams created/found: ${results.teams.length}`);
+      console.log(`Matches imported: ${results.matches.length}`);
+      console.log(`Errors: ${results.errors.length}`);
 
       return results;
     } catch (error) {
