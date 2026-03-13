@@ -8,7 +8,12 @@ class PointsService {
     'Quartas de Final': { order: 4, position: 5 }, // 5th-8th place
     'R16': { order: 3, position: 9 },
     'R32': { order: 2, position: 17 },
-    'Fase de grupos': { order: 1, position: null }
+    'Fase de grupos': { order: 1, position: null },
+    // Group stage positions
+    'Grupo 1º': { order: 1, position: null },
+    'Grupo 2º': { order: 1, position: null },
+    'Grupo 3º': { order: 1, position: null },
+    'Grupo 4º': { order: 1, position: null }
   };
 
   /**
@@ -149,12 +154,153 @@ class PointsService {
   }
 
   /**
+   * Calculate group stage standings with tiebreakers
+   * Returns teams sorted by: wins, head-to-head, set diff, game diff
+   * @param {number} tournamentId
+   * @param {number} tournamentCategoryId
+   * @param {string} groupName - e.g., "A", "B", etc.
+   */
+  static async calculateGroupStandings(tournamentId, tournamentCategoryId, groupName) {
+    // Get all group stage matches for this group
+    const [matches] = await pool.query(`
+      SELECT m.*
+      FROM matches m
+      WHERE m.tournament_id = ?
+        AND m.tournament_category_id = ?
+        AND m.round LIKE ?
+        AND m.status IN ('completed', 'walkover')
+        AND m.winner_team_id IS NOT NULL
+    `, [tournamentId, tournamentCategoryId, `%${groupName}%`]);
+
+    // Build team stats
+    const teamStats = new Map(); // teamId -> { wins, losses, setsWon, setsLost, gamesWon, gamesLost }
+
+    for (const match of matches) {
+      const team1Id = match.team1_id;
+      const team2Id = match.team2_id;
+      const winnerId = match.winner_team_id;
+
+      // Initialize team stats if not exists
+      if (!teamStats.has(team1Id)) {
+        teamStats.set(team1Id, {
+          teamId: team1Id,
+          wins: 0, losses: 0,
+          setsWon: 0, setsLost: 0,
+          gamesWon: 0, gamesLost: 0,
+          headToHead: new Map() // opponentId -> 1 (win) or -1 (loss)
+        });
+      }
+      if (!teamStats.has(team2Id)) {
+        teamStats.set(team2Id, {
+          teamId: team2Id,
+          wins: 0, losses: 0,
+          setsWon: 0, setsLost: 0,
+          gamesWon: 0, gamesLost: 0,
+          headToHead: new Map()
+        });
+      }
+
+      const team1Stats = teamStats.get(team1Id);
+      const team2Stats = teamStats.get(team2Id);
+
+      // Track wins/losses
+      if (winnerId === team1Id) {
+        team1Stats.wins++;
+        team2Stats.losses++;
+        team1Stats.headToHead.set(team2Id, 1);
+        team2Stats.headToHead.set(team1Id, -1);
+      } else {
+        team2Stats.wins++;
+        team1Stats.losses++;
+        team2Stats.headToHead.set(team1Id, 1);
+        team1Stats.headToHead.set(team2Id, -1);
+      }
+
+      // Calculate sets and games from match scores
+      const sets = [
+        { t1: match.set1_team1, t2: match.set1_team2 },
+        { t1: match.set2_team1, t2: match.set2_team2 },
+        { t1: match.set3_team1, t2: match.set3_team2 }
+      ];
+
+      for (const set of sets) {
+        if (set.t1 !== null && set.t2 !== null) {
+          // Games
+          team1Stats.gamesWon += set.t1;
+          team1Stats.gamesLost += set.t2;
+          team2Stats.gamesWon += set.t2;
+          team2Stats.gamesLost += set.t1;
+
+          // Sets
+          if (set.t1 > set.t2) {
+            team1Stats.setsWon++;
+            team2Stats.setsLost++;
+          } else if (set.t2 > set.t1) {
+            team2Stats.setsWon++;
+            team1Stats.setsLost++;
+          }
+        }
+      }
+    }
+
+    // Convert to array and sort with tiebreakers
+    const standings = Array.from(teamStats.values());
+
+    standings.sort((a, b) => {
+      // 1. Wins (descending)
+      if (b.wins !== a.wins) return b.wins - a.wins;
+
+      // 2. Head-to-head (if only comparing 2 teams with same wins)
+      const h2h = a.headToHead.get(b.teamId);
+      if (h2h !== undefined) {
+        if (h2h === 1) return -1; // a beat b
+        if (h2h === -1) return 1; // b beat a
+      }
+
+      // 3. Set difference (descending)
+      const aSetDiff = a.setsWon - a.setsLost;
+      const bSetDiff = b.setsWon - b.setsLost;
+      if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
+
+      // 4. Game difference (descending)
+      const aGameDiff = a.gamesWon - a.gamesLost;
+      const bGameDiff = b.gamesWon - b.gamesLost;
+      if (bGameDiff !== aGameDiff) return bGameDiff - aGameDiff;
+
+      // 5. Total games won (descending)
+      return b.gamesWon - a.gamesWon;
+    });
+
+    // Add position to each team
+    standings.forEach((team, index) => {
+      team.position = index + 1;
+      team.setDiff = team.setsWon - team.setsLost;
+      team.gameDiff = team.gamesWon - team.gamesLost;
+    });
+
+    return standings;
+  }
+
+  /**
+   * Get all groups for a tournament category
+   */
+  static async getGroupNames(tournamentId, tournamentCategoryId) {
+    const [rows] = await pool.query(`
+      SELECT DISTINCT group_name
+      FROM tournament_registrations
+      WHERE tournament_id = ?
+        AND tournament_category_id = ?
+        AND group_name IS NOT NULL
+      ORDER BY group_name
+    `, [tournamentId, tournamentCategoryId]);
+
+    return rows.map(r => r.group_name);
+  }
+
+  /**
    * Award points to all teams after tournament completion
    */
   static async awardTournamentPoints(tournamentId) {
-    // For MS SQL, we use simple queries without explicit transaction management
-    // The pool handles connection management
-
     try {
       // Get tournament tier
       const [tournaments] = await pool.query(
@@ -183,8 +329,47 @@ class PointsService {
         ORDER BY m.round_order DESC
       `, [tournamentId]);
 
-      const teamResults = new Map(); // teamId -> { wins, losses, lastRound, points, level, highestRoundOrder }
+      const teamResults = new Map(); // teamId -> { wins, losses, lastRound, points, level, highestRoundOrder, groupPosition }
 
+      // First, process group stage standings for proper point assignment
+      const processedGroups = new Set();
+
+      for (const match of matches) {
+        if (match.round && match.round.includes('Fase de grupos')) {
+          const groupMatch = match.round.match(/Grupo\s*([A-Z])/i);
+          const groupKey = `${match.tournament_category_id}-${groupMatch ? groupMatch[1] : 'default'}`;
+
+          if (!processedGroups.has(groupKey) && groupMatch) {
+            processedGroups.add(groupKey);
+            const groupName = groupMatch[1];
+            const standings = await this.calculateGroupStandings(
+              tournamentId,
+              match.tournament_category_id,
+              groupName
+            );
+
+            // Store group positions for later use
+            for (const teamStanding of standings) {
+              if (!teamResults.has(teamStanding.teamId)) {
+                teamResults.set(teamStanding.teamId, {
+                  wins: 0, losses: 0, lastRound: null, points: 0,
+                  categoryId: match.category_id, level: match.category_level,
+                  highestRoundOrder: 0, groupPosition: null,
+                  setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0
+                });
+              }
+              const result = teamResults.get(teamStanding.teamId);
+              result.groupPosition = teamStanding.position;
+              result.setsWon = teamStanding.setsWon;
+              result.setsLost = teamStanding.setsLost;
+              result.gamesWon = teamStanding.gamesWon;
+              result.gamesLost = teamStanding.gamesLost;
+            }
+          }
+        }
+      }
+
+      // Process all matches
       for (const match of matches) {
         const winnerId = match.winner_team_id;
         const loserId = match.team1_id === winnerId ? match.team2_id : match.team1_id;
@@ -194,10 +379,16 @@ class PointsService {
 
         // Track wins/losses
         if (!teamResults.has(winnerId)) {
-          teamResults.set(winnerId, { wins: 0, losses: 0, lastRound: null, points: 0, categoryId: match.category_id, level, highestRoundOrder: 0 });
+          teamResults.set(winnerId, {
+            wins: 0, losses: 0, lastRound: null, points: 0,
+            categoryId: match.category_id, level, highestRoundOrder: 0, groupPosition: null
+          });
         }
         if (!teamResults.has(loserId)) {
-          teamResults.set(loserId, { wins: 0, losses: 0, lastRound: null, points: 0, categoryId: match.category_id, level, highestRoundOrder: 0 });
+          teamResults.set(loserId, {
+            wins: 0, losses: 0, lastRound: null, points: 0,
+            categoryId: match.category_id, level, highestRoundOrder: 0, groupPosition: null
+          });
         }
 
         teamResults.get(winnerId).wins++;
@@ -222,13 +413,27 @@ class PointsService {
         }
       }
 
-      // Ensure all teams have at least a participation record (for teams that only played group stage)
+      // Handle teams that only played group stage - assign points based on group position
       for (const [teamId, result] of teamResults) {
-        if (!result.lastRound) {
-          // Team won matches but wasn't in final - give them points for their highest round reached
-          result.lastRound = 'Fase de grupos';
-          result.points = await this.getPoints(tier, result.level, 'Fase de grupos');
-          console.log(`Team ${teamId} had no elimination round, defaulting to Fase de grupos`);
+        if (!result.lastRound || result.lastRound === 'Fase de grupos') {
+          if (result.groupPosition) {
+            // Try to get position-specific points
+            const positionRound = `Grupo ${result.groupPosition}º`;
+            let positionPoints = await this.getPoints(tier, result.level, positionRound);
+
+            // Fall back to generic group stage points if position-specific not found
+            if (positionPoints === 0) {
+              positionPoints = await this.getPoints(tier, result.level, 'Fase de grupos');
+            }
+
+            result.lastRound = positionRound;
+            result.points = positionPoints;
+            console.log(`Team ${teamId} finished ${result.groupPosition}º in group, points: ${positionPoints}`);
+          } else {
+            result.lastRound = 'Fase de grupos';
+            result.points = await this.getPoints(tier, result.level, 'Fase de grupos');
+            console.log(`Team ${teamId} had no group position, defaulting to Fase de grupos`);
+          }
         }
       }
 

@@ -49,6 +49,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'R16', 3, 75, 'OURO Nivel 1 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'R32', 2, 38, 'OURO Nivel 1 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, 'Fase de grupos', 1, 15, 'OURO Nivel 1 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 1º', 1, 23, 'OURO Nivel 1 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 2º', 1, 15, 'OURO Nivel 1 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 3º', 1, 11, 'OURO Nivel 1 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 1, N'Grupo 4º', 1, 8, 'OURO Nivel 1 - 4º no grupo');
 
 -- OURO Level 2 (Base * 1.5 * 0.7)
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Campeão', 7, 420, 'OURO Nivel 2 - Campeão');
@@ -58,6 +62,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'R16', 3, 53, 'OURO Nivel 2 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'R32', 2, 26, 'OURO Nivel 2 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, 'Fase de grupos', 1, 11, 'OURO Nivel 2 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 1º', 1, 16, 'OURO Nivel 2 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 2º', 1, 11, 'OURO Nivel 2 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 3º', 1, 8, 'OURO Nivel 2 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('OURO', 2, N'Grupo 4º', 1, 5, 'OURO Nivel 2 - 4º no grupo');
 
 -- PRATA Level 1 (Base * 1.0 * 1.0)
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Campeão', 7, 400, 'PRATA Nivel 1 - Campeão');
@@ -67,6 +75,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'R16', 3, 50, 'PRATA Nivel 1 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'R32', 2, 25, 'PRATA Nivel 1 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, 'Fase de grupos', 1, 10, 'PRATA Nivel 1 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 1º', 1, 15, 'PRATA Nivel 1 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 2º', 1, 10, 'PRATA Nivel 1 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 3º', 1, 7, 'PRATA Nivel 1 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 1, N'Grupo 4º', 1, 5, 'PRATA Nivel 1 - 4º no grupo');
 
 -- PRATA Level 2 (Base * 1.0 * 0.7)
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Campeão', 7, 280, 'PRATA Nivel 2 - Campeão');
@@ -76,6 +88,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'R16', 3, 35, 'PRATA Nivel 2 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'R32', 2, 18, 'PRATA Nivel 2 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, 'Fase de grupos', 1, 7, 'PRATA Nivel 2 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 1º', 1, 11, 'PRATA Nivel 2 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 2º', 1, 7, 'PRATA Nivel 2 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 3º', 1, 5, 'PRATA Nivel 2 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('PRATA', 2, N'Grupo 4º', 1, 4, 'PRATA Nivel 2 - 4º no grupo');
 
 -- BRONZE Level 1 (Base * 0.75 * 1.0)
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Campeão', 7, 300, 'BRONZE Nivel 1 - Campeão');
@@ -85,6 +101,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'R16', 3, 38, 'BRONZE Nivel 1 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'R32', 2, 19, 'BRONZE Nivel 1 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, 'Fase de grupos', 1, 8, 'BRONZE Nivel 1 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 1º', 1, 12, 'BRONZE Nivel 1 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 2º', 1, 8, 'BRONZE Nivel 1 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 3º', 1, 6, 'BRONZE Nivel 1 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 1, N'Grupo 4º', 1, 4, 'BRONZE Nivel 1 - 4º no grupo');
 
 -- BRONZE Level 2 (Base * 0.75 * 0.7)
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Campeão', 7, 210, 'BRONZE Nivel 2 - Campeão');
@@ -94,6 +114,10 @@ INSERT INTO points_table (tier, level, round_name, round_order, points, descript
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'R16', 3, 26, 'BRONZE Nivel 2 - R16');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'R32', 2, 13, 'BRONZE Nivel 2 - R32');
 INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, 'Fase de grupos', 1, 5, 'BRONZE Nivel 2 - Fase de grupos');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 1º', 1, 8, 'BRONZE Nivel 2 - 1º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 2º', 1, 5, 'BRONZE Nivel 2 - 2º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 3º', 1, 4, 'BRONZE Nivel 2 - 3º no grupo');
+INSERT INTO points_table (tier, level, round_name, round_order, points, description) VALUES ('BRONZE', 2, N'Grupo 4º', 1, 3, 'BRONZE Nivel 2 - 4º no grupo');
 
 PRINT 'Points table seeded (with tier + level combinations)';
 GO

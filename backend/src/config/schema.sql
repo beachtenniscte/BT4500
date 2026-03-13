@@ -140,6 +140,9 @@ BEGIN
       category_id INT NOT NULL,
       draw_size INT DEFAULT 16,
       format NVARCHAR(20) DEFAULT 'mixed' CHECK (format IN ('elimination', 'group_stage', 'mixed')),
+      registration_type NVARCHAR(20) DEFAULT 'none',
+      registration_url NVARCHAR(500) NULL,
+      registration_open BIT DEFAULT 1,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
       FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
       CONSTRAINT unique_tournament_category UNIQUE (tournament_id, category_id)
