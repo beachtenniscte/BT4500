@@ -127,6 +127,24 @@ const apiService = {
   },
 
   /**
+   * Resend verification email
+   * POST /auth/resend-verification
+   */
+  resendVerificationEmail: async () => {
+    return await fetchAPI('/auth/resend-verification', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Check email verification status
+   * GET /auth/verification-status
+   */
+  getVerificationStatus: async () => {
+    return await fetchAPI('/auth/verification-status');
+  },
+
+  /**
    * Login with Google
    * POST /auth/google
    * @param {string} credential - Google ID token from Google Sign-In

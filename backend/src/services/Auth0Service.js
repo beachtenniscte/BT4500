@@ -418,6 +418,132 @@ class Auth0Service {
   }
 
   /**
+   * Send email verification to user
+   * @param {string} auth0UserId - Auth0 user ID
+   * @returns {Promise<void>}
+   */
+  async sendVerificationEmail(auth0UserId) {
+    if (!this.isConfigured()) {
+      throw new Error('Auth0 is not configured');
+    }
+
+    try {
+      const mgmtToken = await this.getManagementToken();
+      await axios.post(
+        `https://${this.domain}/api/v2/jobs/verification-email`,
+        {
+          user_id: auth0UserId,
+          client_id: this.clientId
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mgmtToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('Verification email sent to:', auth0UserId);
+    } catch (error) {
+      console.error('Failed to send verification email:', error.response?.data || error.message);
+      throw new Error('Failed to send verification email');
+    }
+  }
+
+  /**
+   * Configure custom email template in Auth0
+   * @param {string} templateName - Template name (e.g., 'verify_email')
+   * @param {string} htmlContent - HTML content of the email
+   * @param {string} subject - Email subject
+   * @returns {Promise<void>}
+   */
+  async configureEmailTemplate(templateName, htmlContent, subject) {
+    if (!this.isConfigured()) {
+      throw new Error('Auth0 is not configured');
+    }
+
+    try {
+      const mgmtToken = await this.getManagementToken();
+      await axios.put(
+        `https://${this.domain}/api/v2/email-templates/${templateName}`,
+        {
+          template: templateName,
+          body: htmlContent,
+          subject: subject,
+          from: process.env.AUTH0_EMAIL_FROM || '',
+          enabled: true,
+          syntax: 'liquid'
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mgmtToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log(`Email template '${templateName}' configured successfully`);
+    } catch (error) {
+      // If template doesn't exist, create it
+      if (error.response?.status === 404) {
+        try {
+          const mgmtToken = await this.getManagementToken();
+          await axios.post(
+            `https://${this.domain}/api/v2/email-templates`,
+            {
+              template: templateName,
+              body: htmlContent,
+              subject: subject,
+              from: process.env.AUTH0_EMAIL_FROM || '',
+              enabled: true,
+              syntax: 'liquid'
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${mgmtToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          console.log(`Email template '${templateName}' created successfully`);
+          return;
+        } catch (createError) {
+          console.error('Failed to create email template:', createError.response?.data || createError.message);
+          throw new Error('Failed to create email template');
+        }
+      }
+      console.error('Failed to configure email template:', error.response?.data || error.message);
+      throw new Error('Failed to configure email template');
+    }
+  }
+
+  /**
+   * Check if user's email is verified in Auth0
+   * @param {string} auth0UserId - Auth0 user ID
+   * @returns {Promise<boolean>}
+   */
+  async isEmailVerified(auth0UserId) {
+    if (!this.isConfigured()) {
+      return false;
+    }
+
+    try {
+      const mgmtToken = await this.getManagementToken();
+      const response = await axios.get(
+        `https://${this.domain}/api/v2/users/${encodeURIComponent(auth0UserId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${mgmtToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data.email_verified === true;
+    } catch (error) {
+      console.error('Failed to check email verification:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Change user password
    * @param {string} email - User email
    * @returns {Promise<void>}

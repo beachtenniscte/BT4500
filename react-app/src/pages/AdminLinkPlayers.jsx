@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import apiService from '../services/api';
+import { useAdminCheck } from '../hooks';
 import styles from './AdminLinkPlayers.module.css';
 
 function AdminLinkPlayers() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,25 +16,14 @@ function AdminLinkPlayers() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
+  // Load players when admin status is confirmed
   useEffect(() => {
-    checkAdminAndLoadPlayers();
-  }, []);
-
-  const checkAdminAndLoadPlayers = async () => {
-    try {
-      const adminCheck = await apiService.isAdmin();
-      setIsAdmin(adminCheck);
-
-      if (adminCheck) {
-        await loadPlayers();
-      }
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load data');
-    } finally {
+    if (!adminLoading && isAdmin) {
+      loadPlayers().finally(() => setLoading(false));
+    } else if (!adminLoading && !isAdmin) {
       setLoading(false);
     }
-  };
+  }, [adminLoading, isAdmin]);
 
   const loadPlayers = async () => {
     try {
@@ -142,7 +132,7 @@ function AdminLinkPlayers() {
     );
   });
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>

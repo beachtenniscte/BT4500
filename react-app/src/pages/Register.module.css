@@ -1,0 +1,88 @@
+/* Register Page Styles - Using Shared Auth Styles */
+
+/* Import shared auth styles via composes */
+.container {
+  composes: container from '../styles/shared/auth.module.css';
+}
+
+.logo {
+  composes: logo from '../styles/shared/auth.module.css';
+}
+
+.ligaLogo {
+  composes: ligaLogo from '../styles/shared/auth.module.css';
+}
+
+.form {
+  composes: form from '../styles/shared/auth.module.css';
+}
+
+.input {
+  composes: input from '../styles/shared/auth.module.css';
+}
+
+.primaryButton {
+  composes: primaryButton from '../styles/shared/auth.module.css';
+}
+
+.secondaryButton {
+  composes: secondaryButton from '../styles/shared/auth.module.css';
+}
+
+.errorMessage {
+  composes: errorMessage from '../styles/shared/auth.module.css';
+}
+
+.clubLogo {
+  composes: clubLogo from '../styles/shared/auth.module.css';
+}
+
+/* Register-specific styles */
+.verificationMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 320px;
+  padding: 30px 25px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 25px;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+  text-align: center;
+}
+
+.verificationTitle {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: bold;
+  font-style: italic;
+  color: white;
+  margin: 0;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.verificationText {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.verificationText strong {
+  color: white;
+  word-break: break-all;
+}
+
+/* Animation keyframes need to be defined locally for use in this file */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -586,4 +586,81 @@ router.put('/players/:uuid', authenticate, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/admin/users/:id/deactivate
+ * Deactivate a user (soft delete)
+ */
+router.put('/users/:id/deactivate', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const user = await User.findByUuid(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.active === false || user.active === 0) {
+      return res.status(400).json({ error: 'User is already deactivated' });
+    }
+
+    await User.deactivate(user.id, reason || 'admin_action');
+
+    res.json({
+      message: 'User deactivated successfully',
+      user: { id: user.uuid, email: user.email, active: false }
+    });
+  } catch (error) {
+    console.error('Deactivate user error:', error);
+    res.status(500).json({ error: 'Failed to deactivate user' });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id/reactivate
+ * Reactivate a deactivated user
+ */
+router.put('/users/:id/reactivate', authenticate, adminOnly, async (req, res) => {
+  try {
+    const user = await User.findByUuid(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.active !== false && user.active !== 0) {
+      return res.status(400).json({ error: 'User is already active' });
+    }
+
+    await User.reactivate(user.id);
+
+    res.json({
+      message: 'User reactivated successfully',
+      user: { id: user.uuid, email: user.email, active: true }
+    });
+  } catch (error) {
+    console.error('Reactivate user error:', error);
+    res.status(500).json({ error: 'Failed to reactivate user' });
+  }
+});
+
+/**
+ * GET /api/admin/users/deactivated
+ * Get all deactivated users
+ */
+router.get('/users/deactivated', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { pool } = require('../config/database');
+    const [rows] = await pool.query(
+      `SELECT uuid, email, role, deactivated_at, deactivation_reason
+       FROM users WHERE active = 0
+       ORDER BY deactivated_at DESC`
+    );
+
+    res.json({ data: rows });
+  } catch (error) {
+    console.error('Get deactivated users error:', error);
+    res.status(500).json({ error: 'Failed to get deactivated users' });
+  }
+});
+
 module.exports = router;

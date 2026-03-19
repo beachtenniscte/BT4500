@@ -14,7 +14,8 @@ router.post('/register', [
   body('email').trim().notEmpty().withMessage('Username is required'),
   body('password').isLength({ min: 6 }),
   body('firstName').optional().trim().notEmpty(),
-  body('lastName').optional().trim().notEmpty()
+  body('lastName').optional().trim().notEmpty(),
+  body('whatsapp').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -22,13 +23,18 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName, gender, city } = req.body;
+    const { email, password, firstName, lastName, gender, city, whatsapp } = req.body;
 
-    // Check if user exists
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
+    // Check if user exists (including inactive/deactivated users)
+    const existingUser = await User.findByEmailIncludingInactive(email);
+
+    // If user exists and is active, return error
+    if (existingUser && existingUser.active !== false && existingUser.active !== 0) {
       return res.status(400).json({ error: 'Email already registered' });
     }
+
+    // If user was deactivated, we'll reactivate them
+    const isReactivation = existingUser && (existingUser.active === false || existingUser.active === 0);
 
     let auth0Id = null;
     let token;
@@ -51,13 +57,29 @@ router.post('/register', [
       }
     }
 
-    // Create user in local database
-    const user = await User.create({
-      email,
-      password: Auth0Service.isConfigured() ? null : password, // No local password if using Auth0
-      role: 'player',
-      auth0Id
-    });
+    // Create or reactivate user in local database
+    let user;
+    if (isReactivation) {
+      // Reactivate existing user
+      user = await User.reactivate(existingUser.id, {
+        auth0Id,
+        emailVerified: false
+      });
+      // Update whatsapp if provided
+      if (whatsapp) {
+        await User.update(user.id, { whatsapp });
+      }
+      console.log(`User ${email} reactivated`);
+    } else {
+      // Create new user
+      user = await User.create({
+        email,
+        password: Auth0Service.isConfigured() ? null : password, // No local password if using Auth0
+        role: 'player',
+        auth0Id,
+        whatsapp: whatsapp || null
+      });
+    }
 
     // If player info provided, create player profile
     let player = null;
@@ -76,12 +98,23 @@ router.post('/register', [
       token = generateToken(user);
     }
 
+    // Send verification email via Auth0
+    if (Auth0Service.isConfigured() && auth0Id) {
+      try {
+        await Auth0Service.sendVerificationEmail(auth0Id);
+      } catch (verifyError) {
+        console.error('Failed to send verification email:', verifyError.message);
+        // Don't fail registration if email fails
+      }
+    }
+
     res.status(201).json({
-      message: 'Registration successful',
-      user: { id: user.uuid, email: user.email, role: user.role },
+      message: 'Registration successful. Please check your email to verify your account.',
+      user: { id: user.uuid, email: user.email, role: user.role, emailVerified: false },
       player: player ? { id: player.uuid, name: player.full_name } : null,
       token,
-      tokenType: Auth0Service.isConfigured() ? 'auth0' : 'local'
+      tokenType: Auth0Service.isConfigured() ? 'auth0' : 'local',
+      requiresVerification: true
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -114,8 +147,8 @@ router.post('/login', [
         const decoded = Auth0Service.decodeToken(auth0Result.access_token);
         const auth0Role = decoded ? Auth0Service.extractRoleFromToken(decoded) : 'player';
 
-        // Find or create user in local database
-        let user = await User.findByEmail(email);
+        // Find or create user in local database (including inactive users for reactivation)
+        let user = await User.findByEmailIncludingInactive(email);
 
         if (!user) {
           // Create user from Auth0 with role from token
@@ -125,6 +158,13 @@ router.post('/login', [
             role: auth0Role,
             auth0Id: decoded?.sub
           });
+        } else if (user.active === false || user.active === 0) {
+          // Reactivate deactivated user (they re-registered in Auth0)
+          user = await User.reactivate(user.id, {
+            auth0Id: decoded?.sub,
+            emailVerified: true // Auth0 login means email is verified
+          });
+          console.log(`User ${email} reactivated via login`);
         } else {
           // Sync role from Auth0 if it changed
           if (user.role !== auth0Role) {
@@ -139,9 +179,19 @@ router.post('/login', [
           player = await User.linkToPlayerByEmail(user.id, email);
         }
 
+        // Check and sync email verification status from Auth0
+        let emailVerified = user.email_verified;
+        if (user.auth0_id) {
+          const auth0Verified = await Auth0Service.isEmailVerified(user.auth0_id);
+          if (auth0Verified && !emailVerified) {
+            await User.update(user.id, { emailVerified: true });
+            emailVerified = true;
+          }
+        }
+
         res.json({
           message: 'Login successful',
-          user: { id: user.uuid, email: user.email, role: user.role },
+          user: { id: user.uuid, email: user.email, role: user.role, emailVerified },
           player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking, totalPoints: player.total_points } : null,
           token: auth0Result.access_token,
           tokenType: 'auth0'
@@ -153,8 +203,8 @@ router.post('/login', [
       }
     }
 
-    // Fallback to local authentication
-    const user = await User.findByEmailWithPassword(email);
+    // Fallback to local authentication (include inactive for potential reactivation)
+    let user = await User.findByEmailWithPassword(email, true);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -162,6 +212,12 @@ router.post('/login', [
     const isValid = await User.verifyPassword(user, password);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Reactivate deactivated user if password is valid
+    if (user.active === false || user.active === 0) {
+      user = await User.reactivate(user.id);
+      console.log(`User ${email} reactivated via local login`);
     }
 
     const token = generateToken(user);
@@ -174,7 +230,7 @@ router.post('/login', [
 
     res.json({
       message: 'Login successful',
-      user: { id: user.uuid, email: user.email, role: user.role },
+      user: { id: user.uuid, email: user.email, role: user.role, emailVerified: !!user.email_verified },
       player: player ? { id: player.uuid, name: player.full_name, ranking: player.ranking, totalPoints: player.total_points } : null,
       token,
       tokenType: 'local'
@@ -197,8 +253,18 @@ router.get('/me', authenticate, async (req, res) => {
       player = await User.linkToPlayerByEmail(req.user.id, req.user.email);
     }
 
+    // Check and sync email verification status from Auth0
+    let emailVerified = req.user.email_verified;
+    if (Auth0Service.isConfigured() && req.user.auth0_id && !emailVerified) {
+      const auth0Verified = await Auth0Service.isEmailVerified(req.user.auth0_id);
+      if (auth0Verified) {
+        await User.update(req.user.id, { emailVerified: true });
+        emailVerified = true;
+      }
+    }
+
     res.json({
-      user: { id: req.user.uuid, email: req.user.email, role: req.user.role },
+      user: { id: req.user.uuid, email: req.user.email, role: req.user.role, emailVerified },
       player: player ? {
         id: player.uuid,
         name: player.full_name,
@@ -380,6 +446,71 @@ router.post('/forgot-password', [
     console.error('Password reset error:', error);
     // Still return success to prevent email enumeration
     res.json({ message: 'If the email exists, a password reset link has been sent.' });
+  }
+});
+
+/**
+ * POST /api/auth/resend-verification
+ * Resend verification email
+ */
+router.post('/resend-verification', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if already verified
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email already verified' });
+    }
+
+    if (Auth0Service.isConfigured() && user.auth0_id) {
+      await Auth0Service.sendVerificationEmail(user.auth0_id);
+      res.json({ message: 'Verification email sent. Please check your inbox.' });
+    } else {
+      res.status(400).json({ error: 'Email verification not available' });
+    }
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ error: 'Failed to send verification email' });
+  }
+});
+
+/**
+ * GET /api/auth/verification-status
+ * Check if user's email is verified (syncs with Auth0)
+ */
+router.get('/verification-status', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If already verified locally, return true
+    if (user.email_verified) {
+      return res.json({ emailVerified: true });
+    }
+
+    // Check Auth0 for updated status
+    if (Auth0Service.isConfigured() && user.auth0_id) {
+      const isVerified = await Auth0Service.isEmailVerified(user.auth0_id);
+
+      // Sync to local database if verified
+      if (isVerified && !user.email_verified) {
+        await User.update(user.id, { emailVerified: true });
+      }
+
+      return res.json({ emailVerified: isVerified });
+    }
+
+    res.json({ emailVerified: false });
+  } catch (error) {
+    console.error('Verification status error:', error);
+    res.status(500).json({ error: 'Failed to check verification status' });
   }
 });
 

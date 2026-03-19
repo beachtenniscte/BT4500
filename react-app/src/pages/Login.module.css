@@ -1,0 +1,66 @@
+/* Login Page Styles - Using Shared Auth Styles */
+
+/* Import shared auth styles via composes */
+.container {
+  composes: container from '../styles/shared/auth.module.css';
+}
+
+.logo {
+  composes: logo from '../styles/shared/auth.module.css';
+}
+
+.ligaLogo {
+  composes: ligaLogo from '../styles/shared/auth.module.css';
+}
+
+.form {
+  composes: form from '../styles/shared/auth.module.css';
+}
+
+.input {
+  composes: input from '../styles/shared/auth.module.css';
+}
+
+.primaryButton {
+  composes: primaryButton from '../styles/shared/auth.module.css';
+}
+
+.secondaryButton {
+  composes: secondaryButton from '../styles/shared/auth.module.css';
+}
+
+.errorMessage {
+  composes: errorMessage from '../styles/shared/auth.module.css';
+}
+
+.successMessage {
+  composes: successMessage from '../styles/shared/auth.module.css';
+}
+
+.clubLogo {
+  composes: clubLogo from '../styles/shared/auth.module.css';
+}
+
+/* Login-specific styles */
+.googleSection {
+  margin-top: 20px;
+  animation: fadeInUp 0.8s ease-out 0.3s both;
+}
+
+.googleButton {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+/* Animation keyframes need to be defined locally for use in this file */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

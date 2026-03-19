@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:docs.google.com)"
+      "WebFetch(domain:docs.google.com)",
+      "mcp__plugin_figma_figma__get_design_context",
+      "Bash(npm run:*)"
     ]
   }
 }

@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import apiService from '../services/api';
+import { useAdminCheck } from '../hooks';
 import styles from './AdminImportResults.module.css';
 
 function AdminImportResults() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [loading, setLoading] = useState(true);
   const [tournaments, setTournaments] = useState([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
@@ -16,25 +17,14 @@ function AdminImportResults() {
   const [calculatePoints, setCalculatePoints] = useState(true);
   const [clearing, setClearing] = useState(false);
 
+  // Load tournaments when admin status is confirmed
   useEffect(() => {
-    checkAdminAndLoadData();
-  }, []);
-
-  const checkAdminAndLoadData = async () => {
-    try {
-      const adminCheck = await apiService.isAdmin();
-      setIsAdmin(adminCheck);
-
-      if (adminCheck) {
-        await loadTournaments();
-      }
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load data');
-    } finally {
+    if (!adminLoading && isAdmin) {
+      loadTournaments().finally(() => setLoading(false));
+    } else if (!adminLoading && !isAdmin) {
       setLoading(false);
     }
-  };
+  }, [adminLoading, isAdmin]);
 
   const loadTournaments = async () => {
     try {
@@ -168,7 +158,7 @@ function AdminImportResults() {
     }
   };
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>

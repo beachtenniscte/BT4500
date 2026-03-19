@@ -37,7 +37,15 @@ class User {
     return rows[0] || null;
   }
 
-  static async findByEmail(email) {
+  static async findByEmail(email, includeInactive = false) {
+    const query = includeInactive
+      ? `SELECT * FROM users WHERE email = ?`
+      : `SELECT * FROM users WHERE email = ? AND (active = 1 OR active IS NULL)`;
+    const [rows] = await pool.query(query, [email]);
+    return rows[0] || null;
+  }
+
+  static async findByEmailIncludingInactive(email) {
     const [rows] = await pool.query(
       `SELECT * FROM users WHERE email = ?`,
       [email]
@@ -45,26 +53,26 @@ class User {
     return rows[0] || null;
   }
 
-  static async findByEmailWithPassword(email) {
-    const [rows] = await pool.query(
-      `SELECT * FROM users WHERE email = ?`,
-      [email]
-    );
+  static async findByEmailWithPassword(email, includeInactive = false) {
+    const query = includeInactive
+      ? `SELECT * FROM users WHERE email = ?`
+      : `SELECT * FROM users WHERE email = ? AND (active = 1 OR active IS NULL)`;
+    const [rows] = await pool.query(query, [email]);
     return rows[0] || null;
   }
 
   static async create(data) {
     const uuid = uuidv4();
-    const { email, password, role = 'player', auth0Id = null } = data;
+    const { email, password, role = 'player', auth0Id = null, whatsapp = null, emailVerified = false } = data;
 
     // Password can be null for Auth0-only users
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 
     const [result] = await pool.query(
-      `INSERT INTO users (uuid, email, password_hash, role, auth0_id)
+      `INSERT INTO users (uuid, email, password_hash, role, auth0_id, whatsapp, email_verified)
        OUTPUT INSERTED.id
-       VALUES (?, ?, ?, ?, ?)`,
-      [uuid, email, passwordHash, role, auth0Id]
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [uuid, email, passwordHash, role, auth0Id, whatsapp, emailVerified ? 1 : 0]
     );
 
     const insertedId = result[0]?.id;
@@ -94,6 +102,16 @@ class User {
     if (data.auth0Id) {
       fields.push('auth0_id = ?');
       values.push(data.auth0Id);
+    }
+
+    if (data.whatsapp !== undefined) {
+      fields.push('whatsapp = ?');
+      values.push(data.whatsapp);
+    }
+
+    if (data.emailVerified !== undefined) {
+      fields.push('email_verified = ?');
+      values.push(data.emailVerified ? 1 : 0);
     }
 
     if (fields.length === 0) return this.findById(id);
@@ -126,6 +144,57 @@ class User {
   static async delete(id) {
     await pool.query(`DELETE FROM users WHERE id = ?`, [id]);
     return true;
+  }
+
+  /**
+   * Deactivate a user (soft delete)
+   * @param {number} id - User ID
+   * @param {string} reason - Reason for deactivation
+   */
+  static async deactivate(id, reason = 'auth0_deleted') {
+    await pool.query(
+      `UPDATE users SET active = 0, deactivated_at = GETDATE(), deactivation_reason = ? WHERE id = ?`,
+      [reason, id]
+    );
+    return this.findById(id);
+  }
+
+  /**
+   * Reactivate a deactivated user
+   * @param {number} id - User ID
+   * @param {object} updates - Optional fields to update (e.g., new auth0Id)
+   */
+  static async reactivate(id, updates = {}) {
+    const fields = ['active = 1', 'deactivated_at = NULL', 'deactivation_reason = NULL'];
+    const values = [];
+
+    if (updates.auth0Id) {
+      fields.push('auth0_id = ?');
+      values.push(updates.auth0Id);
+    }
+
+    if (updates.emailVerified !== undefined) {
+      fields.push('email_verified = ?');
+      values.push(updates.emailVerified ? 1 : 0);
+    }
+
+    values.push(id);
+    await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    return this.findById(id);
+  }
+
+  /**
+   * Find user by Auth0 ID
+   */
+  static async findByAuth0IdIncludingInactive(auth0Id) {
+    const [rows] = await pool.query(
+      `SELECT * FROM users WHERE auth0_id = ?`,
+      [auth0Id]
+    );
+    return rows[0] || null;
   }
 
   static async getLinkedPlayer(userId) {

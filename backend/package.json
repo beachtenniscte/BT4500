@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "db:migrate": "node src/config/migrate.js",
     "db:seed": "node src/config/seed.js",
-    "db:reset": "node src/config/reset.js"
+    "db:reset": "node src/config/reset.js",
+    "setup:emails": "node src/config/setup-email-templates.js"
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -22,6 +23,7 @@
     "jwks-rsa": "^3.2.0",
     "mssql": "^10.0.2",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.2",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

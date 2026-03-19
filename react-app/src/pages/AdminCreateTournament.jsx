@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import apiService from '../services/api';
+import { useAdminCheck } from '../hooks';
 import styles from './AdminCreateTournament.module.css';
 
 function AdminCreateTournament() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin, loading } = useAdminCheck();
   const [creatingTournament, setCreatingTournament] = useState(false);
   const [tournamentForm, setTournamentForm] = useState({
     name: '',
@@ -36,21 +36,6 @@ function AdminCreateTournament() {
     { code: 'MX1', label: 'Mistos N1', gender: 'MX' },
     { code: 'MX2', label: 'Mistos N2', gender: 'MX' }
   ];
-
-  useEffect(() => {
-    checkAdmin();
-  }, []);
-
-  const checkAdmin = async () => {
-    try {
-      const adminCheck = await apiService.isAdmin();
-      setIsAdmin(adminCheck);
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle tournament form field changes
   const handleFormChange = (field, value) => {

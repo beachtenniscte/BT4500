@@ -1,26 +1,17 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
 import styles from './Profile.module.css';
 
-// Google Client ID - should match the one configured in Auth0
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
 function Profile() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [googleLoaded, setGoogleLoaded] = useState(false);
-
-  // Login form state
-  const [loginMode, setLoginMode] = useState('login'); // 'login' or 'register'
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(true);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const formatProfileData = useCallback((data, playerInfo) => {
     const tournaments = data.tournaments || [];
@@ -78,170 +69,57 @@ function Profile() {
     };
   }, []);
 
-  // Handle Google Sign-In response
-  const handleGoogleResponse = useCallback(async (response) => {
-    if (response.credential) {
-      setSubmitting(true);
-      setError('');
+  useEffect(() => {
+    const checkAuth = async () => {
+      setIsLoading(true);
       try {
-        const result = await apiService.loginWithGoogle(response.credential);
-        if (result.token) {
+        const userData = await apiService.getCurrentUser();
+        if (userData && userData.user) {
           setIsAuthenticated(true);
-          setUser(result.user);
-          if (result.player) {
-            const profileData = await apiService.getProfile(result.player.id);
+          setUser(userData.user);
+          setEmailVerified(userData.user.emailVerified !== false);
+          // Fetch profile data
+          if (userData.player) {
+            const profileData = await apiService.getProfile(userData.player.id);
             if (profileData) {
-              setProfile(formatProfileData(profileData, result.player));
+              setProfile(formatProfileData(profileData, userData.player));
             }
           }
+        } else {
+          // Not authenticated - redirect to login
+          navigate('/login');
         }
       } catch (err) {
-        setError(err.message || 'Google login failed. Please try again.');
+        console.error('Auth check failed:', err);
+        // Auth failed - redirect to login
+        navigate('/login');
       } finally {
-        setSubmitting(false);
+        setIsLoading(false);
       }
-    }
-  }, [formatProfileData]);
+    };
 
-  // Load Google Identity Services script
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) {
-      console.log('Google Client ID not configured');
-      return;
-    }
-
-    // Check if script already loaded
-    if (window.google?.accounts?.id) {
-      setGoogleLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setGoogleLoaded(true);
-    document.body.appendChild(script);
-  }, []);
-
-  // Initialize Google Sign-In when script is loaded
-  useEffect(() => {
-    if (googleLoaded && GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-    }
-  }, [googleLoaded, handleGoogleResponse]);
-
-  // Render Google button when ready
-  useEffect(() => {
-    if (googleLoaded && GOOGLE_CLIENT_ID && !isAuthenticated && window.google?.accounts?.id) {
-      const buttonContainer = document.getElementById('google-signin-button');
-      if (buttonContainer) {
-        buttonContainer.innerHTML = ''; // Clear previous button
-        window.google.accounts.id.renderButton(buttonContainer, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'rectangular',
-          width: 280,
-        });
-      }
-    }
-  }, [googleLoaded, isAuthenticated, loginMode]);
-
-  useEffect(() => {
     checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    setIsLoading(true);
-    try {
-      const userData = await apiService.getCurrentUser();
-      if (userData && userData.user) {
-        setIsAuthenticated(true);
-        setUser(userData.user);
-        // Fetch profile data
-        if (userData.player) {
-          const profileData = await apiService.getProfile(userData.player.id);
-          if (profileData) {
-            setProfile(formatProfileData(profileData, userData.player));
-          }
-        }
-      } else {
-        setIsAuthenticated(false);
-      }
-    } catch (err) {
-      console.error('Auth check failed:', err);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-
-    try {
-      const response = await apiService.login(username, password);
-      if (response.token) {
-        setIsAuthenticated(true);
-        setUser(response.user);
-        if (response.player) {
-          const profileData = await apiService.getProfile(response.player.id);
-          if (profileData) {
-            setProfile(formatProfileData(profileData, response.player));
-          }
-        }
-      }
-    } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-
-    try {
-      const response = await apiService.register({
-        email: username,
-        password,
-        firstName,
-        lastName
-      });
-      if (response.token) {
-        setIsAuthenticated(true);
-        setUser(response.user);
-        if (response.player) {
-          setProfile(formatProfileData({}, response.player));
-        }
-      }
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [navigate, formatProfileData]);
 
   const handleLogout = () => {
     apiService.logout();
     setIsAuthenticated(false);
     setUser(null);
     setProfile(null);
-    setUsername('');
-    setPassword('');
-    setFirstName('');
-    setLastName('');
+    navigate('/login');
+  };
+
+  const handleResendVerification = async () => {
+    setResendingEmail(true);
+    setResendSuccess(false);
+    try {
+      await apiService.resendVerificationEmail();
+      setResendSuccess(true);
+    } catch (err) {
+      console.error('Failed to resend verification email:', err);
+    } finally {
+      setResendingEmail(false);
+    }
   };
 
   // Loading state
@@ -261,138 +139,9 @@ function Profile() {
     );
   }
 
-  // Login/Register form
+  // If not authenticated, don't render anything (redirect will happen)
   if (!isAuthenticated) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.innerPage}>
-          <Link to="/" className={styles.backButton}>
-            <span>&lt;&lt;</span>
-          </Link>
-
-          <h1 className={styles.pageTitle}>
-            {loginMode === 'login' ? 'INICIAR SESSÃO' : 'CRIAR CONTA'}
-          </h1>
-
-          <div className={styles.profileCard}>
-            <div className={styles.loginSection}>
-              <div className={styles.loginHeader}>
-                <svg viewBox="0 0 24 24" className={styles.loginIcon}>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  <path d="M6.5 18.5C7.5 16.5 9.5 15 12 15C14.5 15 16.5 16.5 17.5 18.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                </svg>
-                <p className={styles.loginSubtitle}>
-                  {loginMode === 'login'
-                    ? 'Entre para aceder ao seu perfil'
-                    : 'Crie uma conta para participar'}
-                </p>
-              </div>
-
-              <form onSubmit={loginMode === 'login' ? handleLogin : handleRegister} className={styles.loginForm}>
-                {loginMode === 'register' && (
-                  <>
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor="firstName">Nome</label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          placeholder="João"
-                          required
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label htmlFor="lastName">Apelido</label>
-                        <input
-                          type="text"
-                          id="lastName"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          placeholder="Silva"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="username">Utilizador</label>
-                  <input
-                    type="text"
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="admin"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="password">Password</label>
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                {error && <div className={styles.errorMessage}>{error}</div>}
-
-                <button type="submit" className={styles.submitButton} disabled={submitting}>
-                  {submitting
-                    ? 'A processar...'
-                    : (loginMode === 'login' ? 'Entrar' : 'Criar Conta')}
-                </button>
-              </form>
-
-              {/* Google Sign-In Button */}
-              {GOOGLE_CLIENT_ID && loginMode === 'login' && (
-                <div className={styles.socialLogin}>
-                  <div className={styles.divider}>
-                    <span>ou</span>
-                  </div>
-                  <div id="google-signin-button" className={styles.googleButton}></div>
-                </div>
-              )}
-
-              <div className={styles.switchMode}>
-                {loginMode === 'login' ? (
-                  <p>
-                    Não tem conta?{' '}
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMode('register'); setError(''); }}
-                      className={styles.switchButton}
-                    >
-                      Criar conta
-                    </button>
-                  </p>
-                ) : (
-                  <p>
-                    Já tem conta?{' '}
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMode('login'); setError(''); }}
-                      className={styles.switchButton}
-                    >
-                      Iniciar sessão
-                    </button>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Default profile data if none loaded
@@ -458,6 +207,26 @@ function Profile() {
             Sair
           </button>
         </div>
+
+        {/* Email Verification Banner */}
+        {!emailVerified && (
+          <div className={styles.verificationBanner}>
+            <p>
+              O seu e-mail ainda nao foi verificado.
+              {resendSuccess ? (
+                <span className={styles.resendSuccess}> E-mail enviado!</span>
+              ) : (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendingEmail}
+                  className={styles.resendButton}
+                >
+                  {resendingEmail ? 'A enviar...' : 'Reenviar e-mail'}
+                </button>
+              )}
+            </p>
+          </div>
+        )}
 
         <div className={styles.profileCard}>
           {/* Profile Header with Photo */}
