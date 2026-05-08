@@ -4,7 +4,7 @@ import apiService from '../services/api';
 import TopNavBar from '../components/TopNavBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { TrophyIcon, CalendarIcon, EmptyCalendarIcon } from '../components/icons';
-import { TIER_CLASSES } from '../utils';
+import { TIER_CLASSES, getTournamentStatusLabel } from '../utils';
 import styles from './Provas.module.css';
 
 function Provas() {
@@ -59,6 +59,9 @@ function Provas() {
   const getProvasByYear = () => {
     const grouped = {};
     for (const prova of allProvas) {
+      // Hide cancelled tournaments from the public list
+      if (prova.status === 'cancelled') continue;
+
       const year = prova.year || new Date().getFullYear();
 
       if (!grouped[year]) {
@@ -77,38 +80,41 @@ function Provas() {
   const provasByYear = getProvasByYear();
   const sortedYears = Object.keys(provasByYear).sort((a, b) => b - a);
 
-  const renderProvaCard = (prova, isCompleted) => (
-    <button
-      key={prova.id}
-      className={`${styles.provaCard} ${isCompleted ? styles.provaCardCompleted : styles.provaCardUpcoming}`}
-      onClick={() => handleProvaClick(prova)}
-      aria-label={`${prova.name || prova.type} - ${isCompleted ? 'Ver resultados' : prova.status === 'in_progress' ? 'A Decorrer' : 'Brevemente'}`}
-    >
-      <div className={styles.provaInfo}>
-        <div className={styles.provaMain}>
-          <span className={`${styles.tierBadge} ${getBadgeClass(prova.type)}`}>
-            {prova.type}
+  const renderProvaCard = (prova, isCompleted) => {
+    const upcomingLabel = getTournamentStatusLabel(prova.status);
+    return (
+      <button
+        key={prova.id}
+        className={`${styles.provaCard} ${isCompleted ? styles.provaCardCompleted : styles.provaCardUpcoming}`}
+        onClick={() => handleProvaClick(prova)}
+        aria-label={`${prova.name || prova.type} - ${isCompleted ? 'Ver resultados' : upcomingLabel}`}
+      >
+        <div className={styles.provaInfo}>
+          <div className={styles.provaMain}>
+            <span className={`${styles.tierBadge} ${getBadgeClass(prova.type)}`}>
+              {prova.type}
+            </span>
+            {prova.name && (
+              <span className={styles.provaName}>{prova.name}</span>
+            )}
+          </div>
+          <span className={styles.provaDates}>
+            <CalendarIcon size={14} className={styles.icon} />
+            {prova.dates}
           </span>
-          {prova.name && (
-            <span className={styles.provaName}>{prova.name}</span>
+        </div>
+        <div className={styles.provaAction}>
+          {isCompleted ? (
+            <span className={styles.resultsLabel}>Ver resultados →</span>
+          ) : (
+            <span className={styles.upcomingLabel} data-status={prova.status}>
+              {upcomingLabel}
+            </span>
           )}
         </div>
-        <span className={styles.provaDates}>
-          <CalendarIcon size={14} className={styles.icon} />
-          {prova.dates}
-        </span>
-      </div>
-      <div className={styles.provaAction}>
-        {isCompleted ? (
-          <span className={styles.resultsLabel}>Ver resultados →</span>
-        ) : (
-          <span className={styles.upcomingLabel}>
-            {prova.status === 'in_progress' ? 'A Decorrer' : 'Brevemente'}
-          </span>
-        )}
-      </div>
-    </button>
-  );
+      </button>
+    );
+  };
 
   return (
     <div className={styles.container}>

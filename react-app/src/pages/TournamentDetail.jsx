@@ -5,7 +5,7 @@ import { useTournamentData, useModal } from '../hooks';
 import { TrophyIcon, CalendarIcon, LocationIcon, CloseIcon } from '../components/icons';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorState from '../components/ErrorState';
-import { formatDateRange, getCategoryLabel, getTierClass, getGenderFromCategory, DEFAULT_AVATAR } from '../utils';
+import { formatDateRange, getCategoryLabel, getTierClass, getGenderFromCategory, DEFAULT_AVATAR, getTournamentStatusLabel } from '../utils';
 import styles from './TournamentDetail.module.css';
 
 function TournamentDetail() {
@@ -17,7 +17,8 @@ function TournamentDetail() {
     categories,
     loading,
     error,
-    getWinnerForCategory
+    getWinnerForCategory,
+    getRunnerUpForCategory
   } = useTournamentData(uuid);
 
   const modal = useModal();
@@ -125,7 +126,7 @@ function TournamentDetail() {
     );
   }
 
-  // Upcoming tournament view
+  // "Open" — announced but registrations not yet available
   if (tournament.status === 'scheduled') {
     return (
       <div className={styles.container}>
@@ -134,10 +135,40 @@ function TournamentDetail() {
             <span>←</span> Voltar
           </Link>
 
-          {/* Hero Section */}
           <TournamentHero tournament={tournament} />
 
-          {/* Unified Registration Section - Grouped by Level */}
+          <div className={styles.registrationSection}>
+            <h2 className={styles.sectionTitle}>Em Breve</h2>
+            <div className={styles.registrationCard}>
+              <p className={styles.registrationText}>
+                As inscricoes para este torneio estarao brevemente disponiveis.
+              </p>
+              {categories.length > 0 && (
+                <div className={styles.categoriesPreview}>
+                  <span className={styles.categoriesLabel}>Categorias:</span>
+                  {categories.map(cat => (
+                    <span key={cat.code} className={styles.categoryTag}>{cat.code}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // "Open for registrations" — show the registration form/links
+  if (tournament.status === 'open_registration') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.innerPage}>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
+          </Link>
+
+          <TournamentHero tournament={tournament} />
+
           <div className={styles.registrationSection}>
             <h2 className={styles.sectionTitle}>Inscricoes</h2>
 
@@ -157,7 +188,6 @@ function TournamentDetail() {
               </div>
             ) : (
               <div className={styles.registrationLevels}>
-                {/* Level 1 */}
                 {level1Cats.length > 0 && (
                   <LevelAccordion
                     level={1}
@@ -171,7 +201,6 @@ function TournamentDetail() {
                   />
                 )}
 
-                {/* Level 2 */}
                 {level2Cats.length > 0 && (
                   <LevelAccordion
                     level={2}
@@ -192,7 +221,62 @@ function TournamentDetail() {
     );
   }
 
-  // Completed/In Progress tournament view
+  // "In progress" — placeholder, no winners yet
+  if (tournament.status === 'in_progress') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.innerPage}>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
+          </Link>
+
+          <TournamentHero tournament={tournament} />
+
+          <div className={styles.registrationSection}>
+            <h2 className={styles.sectionTitle}>Torneio em Progresso</h2>
+            <div className={styles.registrationCard}>
+              <p className={styles.registrationText}>
+                O torneio esta a decorrer. Os vencedores serao publicados quando terminar.
+              </p>
+              {categories.length > 0 && (
+                <div className={styles.categoriesPreview}>
+                  <span className={styles.categoriesLabel}>Categorias:</span>
+                  {categories.map(cat => (
+                    <span key={cat.code} className={styles.categoryTag}>{cat.code}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // "Cancelled" — short notice
+  if (tournament.status === 'cancelled') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.innerPage}>
+          <Link to="/provas" className={styles.backButton} aria-label="Voltar as provas">
+            <span>←</span> Voltar
+          </Link>
+
+          <TournamentHero tournament={tournament} />
+
+          <div className={styles.registrationSection}>
+            <div className={styles.registrationCard}>
+              <p className={styles.registrationText}>
+                Torneio cancelado.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // "Closed" / completed — show winners + finalists
   return (
     <div className={styles.container}>
       <div className={styles.innerPage}>
@@ -218,6 +302,7 @@ function TournamentDetail() {
                 key={cat.code}
                 category={cat}
                 winner={getWinnerForCategory(cat.code)}
+                runnerUp={getRunnerUpForCategory(cat.code)}
                 onClick={() => openCategoryModal(cat.code)}
               />
             ))}
@@ -260,8 +345,7 @@ function TournamentHero({ tournament }) {
         </span>
       </div>
       <div className={styles.statusBadge} data-status={tournament.status}>
-        {tournament.status === 'completed' ? 'Concluido' :
-         tournament.status === 'scheduled' ? 'Brevemente' : 'Em Progresso'}
+        {getTournamentStatusLabel(tournament.status)}
       </div>
     </div>
   );
@@ -357,7 +441,7 @@ function CategoryRegistrationItem({ category, tournamentUuid }) {
   );
 }
 
-function CategoryCard({ category, winner, onClick }) {
+function CategoryCard({ category, winner, runnerUp, onClick }) {
   return (
     <button
       className={styles.categoryCard}
@@ -401,6 +485,16 @@ function CategoryCard({ category, winner, onClick }) {
       ) : (
         <div className={styles.noWinner}>
           <span>Sem resultados</span>
+        </div>
+      )}
+
+      {runnerUp && (
+        <div className={styles.runnerUpLine}>
+          <span className={styles.runnerUpLabel}>Finalista</span>
+          <span className={styles.runnerUpSeparator}>·</span>
+          <span className={styles.runnerUpNames}>
+            {runnerUp.player1_name?.split(' ')[0]} & {runnerUp.player2_name?.split(' ')[0]}
+          </span>
         </div>
       )}
 

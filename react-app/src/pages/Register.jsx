@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuthRedirect } from '../hooks';
+import { useAuth } from '../context/AuthContext';
 import styles from './Register.module.css';
 
 function Register() {
   const navigate = useNavigate();
+  const { refresh: refreshAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -62,6 +64,7 @@ function Register() {
         if (response.requiresVerification) {
           setRegistrationComplete(true);
         } else {
+          await refreshAuth();
           navigate('/profile');
         }
       }

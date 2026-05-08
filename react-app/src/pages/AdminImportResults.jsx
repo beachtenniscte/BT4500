@@ -4,6 +4,14 @@ import apiService from '../services/api';
 import { useAdminCheck } from '../hooks';
 import styles from './AdminImportResults.module.css';
 
+const STATUS_HINTS = {
+  scheduled: 'Aberto: torneio anunciado, inscrições ainda não disponíveis.',
+  open_registration: 'Inscrições Abertas: utilizadores podem inscrever-se na página pública.',
+  in_progress: 'A Decorrer: torneio em jogo. Inscrições fechadas; resultados ainda não públicos.',
+  completed: 'Concluído: vencedores e finalistas visíveis publicamente.',
+  cancelled: 'Cancelado.'
+};
+
 function AdminImportResults() {
   const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [loading, setLoading] = useState(true);
@@ -16,6 +24,7 @@ function AdminImportResults() {
   const [error, setError] = useState(null);
   const [calculatePoints, setCalculatePoints] = useState(true);
   const [clearing, setClearing] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   // Load tournaments when admin status is confirmed
   useEffect(() => {
@@ -84,6 +93,36 @@ function AdminImportResults() {
       setError(err.message || 'Falha ao apagar histórico');
     } finally {
       setClearing(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    if (!selectedTournamentId || !selectedTournamentInfo) return;
+    if (newStatus === selectedTournamentInfo.tournament?.status) return;
+
+    const tournament = tournaments.find(t => t.id.toString() === selectedTournamentId);
+    if (!tournament) return;
+
+    if (newStatus === 'completed') {
+      const ok = window.confirm(
+        `Tem a certeza que deseja marcar "${tournament.name}" como Concluído?\n\nOs vencedores ficarão visíveis publicamente.`
+      );
+      if (!ok) return;
+    }
+
+    setSavingStatus(true);
+    setError(null);
+
+    try {
+      await apiService.updateTournamentStatus(tournament.uuid, newStatus);
+
+      // Refresh tournament info to reflect the new status
+      const info = await apiService.getTournamentWithStatus(tournament.uuid);
+      setSelectedTournamentInfo(info);
+    } catch (err) {
+      setError(err.message || 'Falha ao actualizar estado do torneio');
+    } finally {
+      setSavingStatus(false);
     }
   };
 
@@ -195,7 +234,7 @@ function AdminImportResults() {
           <span>&lt;&lt;</span>
         </Link>
 
-        <h1 className={styles.pageTitle}>IMPORTAR RESULTADOS</h1>
+        <h1 className={styles.pageTitle}>EDITAR TORNEIO</h1>
 
         <div className={styles.mainCard}>
           <div className={styles.description}>
@@ -238,6 +277,30 @@ function AdminImportResults() {
                   >
                     {clearing ? 'A apagar...' : 'Apagar Histórico'}
                   </button>
+                </div>
+              )}
+
+              {/* Tournament status control */}
+              {selectedTournamentInfo && (
+                <div className={styles.statusCard}>
+                  <label className={styles.formLabel} htmlFor="tournamentStatus">
+                    Estado do Torneio
+                  </label>
+                  <select
+                    id="tournamentStatus"
+                    value={selectedTournamentInfo.tournament?.status || 'scheduled'}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={savingStatus}
+                    className={styles.statusSelect}
+                  >
+                    <option value="scheduled">Aberto</option>
+                    <option value="open_registration">Inscrições Abertas</option>
+                    <option value="in_progress">A Decorrer</option>
+                    <option value="completed">Concluído</option>
+                  </select>
+                  <p className={styles.statusHint}>
+                    {STATUS_HINTS[selectedTournamentInfo.tournament?.status] || STATUS_HINTS.scheduled}
+                  </p>
                 </div>
               )}
 

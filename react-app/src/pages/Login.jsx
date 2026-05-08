@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuthRedirect } from '../hooks';
+import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
 // Google Client ID - should match the one configured in Auth0
@@ -9,6 +10,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function Login() {
   const navigate = useNavigate();
+  const { refresh: refreshAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,6 +30,7 @@ function Login() {
       try {
         const result = await apiService.loginWithGoogle(response.credential);
         if (result.token) {
+          await refreshAuth();
           navigate('/profile');
         }
       } catch (err) {
@@ -36,7 +39,7 @@ function Login() {
         setSubmitting(false);
       }
     }
-  }, [navigate]);
+  }, [navigate, refreshAuth]);
 
   // Load Google Identity Services script
   useEffect(() => {
@@ -96,6 +99,7 @@ function Login() {
     try {
       const response = await apiService.login(email, password);
       if (response.token) {
+        await refreshAuth();
         navigate('/profile');
       }
     } catch (err) {

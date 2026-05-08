@@ -1,17 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 
 function Profile() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user: authUser, loading: authLoading, logout: authLogout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [emailVerified, setEmailVerified] = useState(true);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+
+  const isAuthenticated = !!authUser;
+  const user = authUser?.user || null;
 
   const formatProfileData = useCallback((data, playerInfo) => {
     const tournaments = data.tournaments || [];
@@ -70,41 +73,44 @@ function Profile() {
   }, []);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    if (authLoading) {
       setIsLoading(true);
-      try {
-        const userData = await apiService.getCurrentUser();
-        if (userData && userData.user) {
-          setIsAuthenticated(true);
-          setUser(userData.user);
-          setEmailVerified(userData.user.emailVerified !== false);
-          // Fetch profile data
-          if (userData.player) {
-            const profileData = await apiService.getProfile(userData.player.id);
-            if (profileData) {
-              setProfile(formatProfileData(profileData, userData.player));
-            }
-          }
-        } else {
-          // Not authenticated - redirect to login
-          navigate('/login');
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
-        // Auth failed - redirect to login
-        navigate('/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      return;
+    }
 
-    checkAuth();
-  }, [navigate, formatProfileData]);
+    if (!authUser || !authUser.user) {
+      navigate('/login');
+      return;
+    }
+
+    setEmailVerified(authUser.user.emailVerified !== false);
+
+    if (!authUser.player) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    apiService.getProfile(authUser.player.id)
+      .then((profileData) => {
+        if (cancelled) return;
+        if (profileData) {
+          setProfile(formatProfileData(profileData, authUser.player));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) console.error('Failed to load profile:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [authUser, authLoading, navigate, formatProfileData]);
 
   const handleLogout = () => {
-    apiService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
+    authLogout();
     setProfile(null);
     navigate('/login');
   };

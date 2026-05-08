@@ -97,7 +97,7 @@ BEGIN
       start_date DATE NOT NULL,
       end_date DATE NOT NULL,
       year INT NOT NULL,
-      status NVARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+      status NVARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'open_registration', 'in_progress', 'completed', 'cancelled')),
       description NVARCHAR(MAX) NULL,
       created_at DATETIME2 DEFAULT GETDATE(),
       updated_at DATETIME2 DEFAULT GETDATE()

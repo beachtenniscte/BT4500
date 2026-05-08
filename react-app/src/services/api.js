@@ -3,6 +3,22 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 /**
+ * In-memory cache for /auth/me. Keyed on the current auth token so a
+ * fresh login (different token) bypasses any stale entry.
+ * - 5-minute TTL
+ * - In-flight promise dedup so concurrent callers share one request
+ * - Cleared on setAuthToken / removeAuthToken
+ */
+const AUTH_TTL_MS = 5 * 60 * 1000;
+let authCache = null;     // { token, user, expiresAt } | null
+let authInFlight = null;  // { token, promise } | null
+
+function clearAuthCache() {
+  authCache = null;
+  authInFlight = null;
+}
+
+/**
  * Get auth token from localStorage
  */
 function getAuthToken() {
@@ -15,6 +31,7 @@ function getAuthToken() {
 function setAuthToken(token, tokenType = 'local') {
   localStorage.setItem('bt4500_token', token);
   localStorage.setItem('bt4500_token_type', tokenType);
+  clearAuthCache();
 }
 
 /**
@@ -23,6 +40,7 @@ function setAuthToken(token, tokenType = 'local') {
 function removeAuthToken() {
   localStorage.removeItem('bt4500_token');
   localStorage.removeItem('bt4500_token_type');
+  clearAuthCache();
 }
 
 /**
@@ -175,20 +193,51 @@ const apiService = {
   /**
    * Get current user
    * GET /auth/me
-   * Returns null if not authenticated (no error logged)
+   * Returns null if not authenticated (no error logged).
+   *
+   * Caches the response for 5 minutes per token and dedupes concurrent
+   * calls so a single page mount that triggers multiple auth checks
+   * results in at most one network request. Cache invalidates on
+   * setAuthToken / removeAuthToken.
+   *
+   * @param {{force?: boolean}} options - Pass { force: true } to bypass the cache (e.g. after login).
    */
-  getCurrentUser: async () => {
+  getCurrentUser: async ({ force = false } = {}) => {
     const token = getAuthToken();
     if (!token) {
-      return null; // No token = not logged in, no need to call API
-    }
-    try {
-      return await fetchAPI('/auth/me');
-    } catch (error) {
-      // Token might be expired/invalid - clear it
-      removeAuthToken();
+      // No token = definitely logged out. Make sure cache is clear.
+      if (authCache || authInFlight) clearAuthCache();
       return null;
     }
+
+    const now = Date.now();
+
+    if (!force && authCache && authCache.token === token && authCache.expiresAt > now) {
+      return authCache.user;
+    }
+
+    if (!force && authInFlight && authInFlight.token === token) {
+      return authInFlight.promise;
+    }
+
+    const promise = (async () => {
+      try {
+        const user = await fetchAPI('/auth/me');
+        authCache = { token, user, expiresAt: Date.now() + AUTH_TTL_MS };
+        return user;
+      } catch (error) {
+        // Token rejected — clear it and the cache.
+        removeAuthToken();
+        return null;
+      } finally {
+        if (authInFlight && authInFlight.token === token) {
+          authInFlight = null;
+        }
+      }
+    })();
+
+    authInFlight = { token, promise };
+    return promise;
   },
 
   /**
@@ -227,7 +276,7 @@ const apiService = {
           id: t.id,
           type: t.tier,
           dates: formatTournamentDates(t.start_date, t.end_date),
-          status: t.status === 'completed' ? 'completed' : (t.status === 'in_progress' ? 'in_progress' : 'upcoming'),
+          status: t.status,
           name: t.name,
           uuid: t.uuid
         }));
@@ -304,6 +353,19 @@ const apiService = {
   getTournamentWinners: async (uuid) => {
     try {
       const response = await fetchAPI(`/tournaments/${uuid}/winners`);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * Get tournament runners-up (2nd place per category)
+   * GET /tournaments/:uuid/runner-ups
+   */
+  getTournamentRunnerUps: async (uuid) => {
+    try {
+      const response = await fetchAPI(`/tournaments/${uuid}/runner-ups`);
       return response.data;
     } catch (error) {
       return null;
@@ -528,6 +590,19 @@ const apiService = {
   },
 
   /**
+   * Update tournament status (admin)
+   * PUT /tournaments/:uuid
+   * @param {string} uuid - Tournament UUID
+   * @param {string} status - One of: scheduled, open_registration, in_progress, completed, cancelled
+   */
+  updateTournamentStatus: async (uuid, status) => {
+    return await fetchAPI(`/tournaments/${uuid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  /**
    * Import tournament from CSV file into an existing tournament
    * POST /admin/import-csv
    * @param {File} file - CSV file to import
@@ -666,15 +741,13 @@ const apiService = {
   },
 
   /**
-   * Check if current user is admin
+   * Check if current user is admin.
+   * Delegates to getCurrentUser so the /auth/me response is shared via the
+   * auth cache instead of issuing a duplicate request.
    */
   isAdmin: async () => {
-    try {
-      const user = await fetchAPI('/auth/me');
-      return user?.user?.role === 'admin';
-    } catch (error) {
-      return false;
-    }
+    const user = await apiService.getCurrentUser();
+    return user?.user?.role === 'admin';
   },
 
   /**

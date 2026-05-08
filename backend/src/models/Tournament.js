@@ -232,6 +232,31 @@ class Tournament {
   }
 
   /**
+   * Get tournament runners-up (teams that finished in 2nd place per category)
+   */
+  static async getRunnerUps(tournamentId) {
+    const [runnerUps] = await pool.query(`
+      SELECT
+        c.code as category_code,
+        c.name as category_name,
+        c.gender,
+        p1.full_name as player1_name,
+        p1.photo_url as player1_photo,
+        p2.full_name as player2_name,
+        p2.photo_url as player2_photo
+      FROM tournament_registrations tr
+      JOIN tournament_categories tc ON tr.tournament_category_id = tc.id
+      JOIN categories c ON tc.category_id = c.id
+      JOIN teams t ON tr.team_id = t.id
+      JOIN players p1 ON t.player1_id = p1.id
+      JOIN players p2 ON t.player2_id = p2.id
+      WHERE tr.tournament_id = ? AND tr.final_position = 2
+      ORDER BY c.gender, c.level
+    `, [tournamentId]);
+    return runnerUps;
+  }
+
+  /**
    * Get matches grouped by round for a tournament
    */
   static async getMatchesByRound(tournamentId, categoryCode = null) {

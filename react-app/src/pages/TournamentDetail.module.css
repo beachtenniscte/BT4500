@@ -204,6 +204,16 @@
   color: white;
 }
 
+.statusBadge[data-status="open_registration"] {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+}
+
+.statusBadge[data-status="cancelled"] {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  color: white;
+}
+
 /* Section Titles */
 .sectionTitle {
   display: flex;
@@ -353,6 +363,35 @@
   color: #888;
   font-size: 14px;
   font-style: italic;
+}
+
+.runnerUpLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 20px 12px;
+  font-size: 12px;
+  color: #6b6b7a;
+  opacity: 0.85;
+}
+
+.runnerUpLabel {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: #888;
+}
+
+.runnerUpSeparator {
+  color: #b8b8c2;
+}
+
+.runnerUpNames {
+  font-weight: 500;
+  color: #4a4a5a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .viewResults {

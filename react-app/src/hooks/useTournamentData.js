@@ -19,6 +19,7 @@ export function useTournamentData(uuid, options = {}) {
   const [tournament, setTournament] = useState(null);
   const [categories, setCategories] = useState([]);
   const [winners, setWinners] = useState([]);
+  const [runnerUps, setRunnerUps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -44,18 +45,22 @@ export function useTournamentData(uuid, options = {}) {
       setTournament(data.tournament);
       setCategories(data.categories || []);
 
-      // Fetch winners for completed/in-progress tournaments
-      if (includeWinners && (data.tournament.status === 'completed' || data.tournament.status === 'in_progress')) {
+      // Fetch winners + runners-up only when the tournament is closed
+      if (includeWinners && data.tournament.status === 'completed') {
         try {
-          const winnersData = await apiService.getTournamentWinners(uuid);
+          const [winnersData, runnerUpsData] = await Promise.all([
+            apiService.getTournamentWinners(uuid),
+            apiService.getTournamentRunnerUps(uuid)
+          ]);
           setWinners(winnersData || []);
+          setRunnerUps(runnerUpsData || []);
         } catch (winnersErr) {
-          console.warn('Failed to load winners:', winnersErr);
+          console.warn('Failed to load winners/runners-up:', winnersErr);
         }
       }
 
-      // Fetch signup info for scheduled tournaments
-      if (includeSignupInfo && data.tournament.status === 'scheduled') {
+      // Fetch signup info only when registrations are open
+      if (includeSignupInfo && data.tournament.status === 'open_registration') {
         try {
           const signupInfo = await apiService.getTournamentSignupInfo(uuid);
           if (signupInfo?.categories) {
@@ -81,14 +86,20 @@ export function useTournamentData(uuid, options = {}) {
     return winners.find(w => w.category_code === categoryCode);
   }, [winners]);
 
+  const getRunnerUpForCategory = useCallback((categoryCode) => {
+    return runnerUps.find(r => r.category_code === categoryCode);
+  }, [runnerUps]);
+
   return {
     tournament,
     categories,
     winners,
+    runnerUps,
     loading,
     error,
     refetch: loadData,
-    getWinnerForCategory
+    getWinnerForCategory,
+    getRunnerUpForCategory
   };
 }
 

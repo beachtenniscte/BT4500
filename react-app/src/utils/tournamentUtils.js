@@ -102,8 +102,10 @@ export function getStatusLabel(status) {
 // Tournament status labels
 export const TOURNAMENT_STATUS_LABELS = {
   scheduled: 'Brevemente',
-  in_progress: 'Em Progresso',
-  completed: 'Concluido'
+  open_registration: 'Inscricoes Abertas',
+  in_progress: 'A Decorrer',
+  completed: 'Concluido',
+  cancelled: 'Cancelado'
 };
 
 /**

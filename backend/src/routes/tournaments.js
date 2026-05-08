@@ -219,6 +219,30 @@ router.get('/:uuid/winners', async (req, res) => {
 });
 
 /**
+ * GET /api/tournaments/:uuid/runner-ups
+ * Get tournament runners-up (2nd place per category)
+ */
+router.get('/:uuid/runner-ups', async (req, res) => {
+  try {
+    const tournament = await Tournament.findByUuid(req.params.uuid);
+
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const runnerUps = await Tournament.getRunnerUps(tournament.id);
+
+    res.json({
+      data: runnerUps,
+      count: runnerUps.length
+    });
+  } catch (error) {
+    console.error('Get tournament runner-ups error:', error);
+    res.status(500).json({ error: 'Failed to get tournament runner-ups' });
+  }
+});
+
+/**
  * GET /api/tournaments/:uuid/matches-by-round
  * Get tournament matches grouped by round
  */

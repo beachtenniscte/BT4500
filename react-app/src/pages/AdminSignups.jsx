@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useState, useEffect, useId } from 'react';
 import apiService from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { TrashIcon } from '../components/icons';
 import { formatDateCompact, getStatusColor, getStatusLabel } from '../utils';
@@ -8,7 +9,7 @@ import styles from './AdminSignups.module.css';
 
 function AdminSignups() {
   const { uuid } = useParams();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tournament, setTournament] = useState(null);
   const [signups, setSignups] = useState([]);
@@ -20,24 +21,13 @@ function AdminSignups() {
   const filterId = useId();
 
   useEffect(() => {
-    checkAdminAndLoadData();
-  }, [uuid]);
-
-  const checkAdminAndLoadData = async () => {
-    try {
-      const adminCheck = await apiService.isAdmin();
-      setIsAdmin(adminCheck);
-
-      if (adminCheck) {
-        await loadSignups();
-      }
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load data');
-    } finally {
+    if (authLoading) return;
+    if (!isAdmin) {
       setLoading(false);
+      return;
     }
-  };
+    loadSignups().finally(() => setLoading(false));
+  }, [uuid, isAdmin, authLoading]);
 
   const loadSignups = async () => {
     try {

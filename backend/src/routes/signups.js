@@ -102,6 +102,15 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Torneio não encontrado' });
     }
 
+    // Tournament-level gate: registrations are only accepted while
+    // status === 'open_registration'. Per-category gating below remains
+    // as a second-level filter.
+    if (tournament.status !== 'open_registration') {
+      return res.status(400).json({
+        error: 'As inscrições para este torneio não estão abertas.'
+      });
+    }
+
     // Get tournament category
     const [tcRows] = await pool.query(`
       SELECT tc.id, tc.registration_type, tc.registration_open

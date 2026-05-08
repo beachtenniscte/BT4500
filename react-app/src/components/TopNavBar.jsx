@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import apiService from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import styles from './TopNavBar.module.css';
 
 /**
@@ -21,17 +21,9 @@ function TopNavBar({
   variant = "inner"
 }) {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAuth();
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef(null);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const adminStatus = await apiService.isAdmin();
-      setIsAdmin(adminStatus);
-    };
-    checkAdmin();
-  }, []);
 
   // Close admin menu when clicking outside
   useEffect(() => {
@@ -142,7 +134,7 @@ function TopNavBar({
                   <svg viewBox="0 0 24 24" className={styles.dropdownIcon}>
                     <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Importar Resultados
+                  Editar Torneio
                 </button>
                 <button
                   className={styles.adminDropdownItem}

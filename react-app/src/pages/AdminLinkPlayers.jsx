@@ -136,7 +136,7 @@ function AdminLinkPlayers() {
     return (
       <div className={styles.container}>
         <div className={styles.innerPage}>
-          <Link to="/admin" className={styles.backButton}>
+          <Link to="/" className={styles.backButton}>
             <span>&lt;&lt;</span>
           </Link>
           <div className={styles.loading}>A carregar...</div>
@@ -165,7 +165,7 @@ function AdminLinkPlayers() {
   return (
     <div className={styles.container}>
       <div className={styles.innerPage}>
-        <Link to="/admin" className={styles.backButton}>
+        <Link to="/" className={styles.backButton}>
           <span>&lt;&lt;</span>
         </Link>
 
