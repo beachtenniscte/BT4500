@@ -9,7 +9,8 @@
       "Bash(Get-ChildItem -Path d:\\\\TestFigma\\\\BT4500\\\\backend -Recurse -Include *.js,*.sql)",
       "Bash(Select-Object FullName)",
       "Bash(Sort-Object FullName)",
-      "Bash(xargs grep -l \"useContext\\\\|createContext\\\\|useState.*auth\\\\|Context\")"
+      "Bash(xargs grep -l \"useContext\\\\|createContext\\\\|useState.*auth\\\\|Context\")",
+      "Bash(npm ls *)"
     ]
   }
 }

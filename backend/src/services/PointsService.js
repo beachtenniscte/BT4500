@@ -1,4 +1,27 @@
 const { pool } = require('../config/database');
+const PointsCalculator = require('./PointsCalculator');
+
+/**
+ * Convert a DB match row (snake_case, set1_team1 / set2_team1 / set3_team1 columns)
+ * into the camelCase shape PointsCalculator expects.
+ */
+function toCalcMatch(m) {
+  const sets = [];
+  for (let i = 1; i <= 3; i++) {
+    const a = m[`set${i}_team1`];
+    const b = m[`set${i}_team2`];
+    if (a != null || b != null) {
+      sets.push({ t1: a ?? 0, t2: b ?? 0 });
+    }
+  }
+  return {
+    team1Id: m.team1_id,
+    team2Id: m.team2_id,
+    winnerTeamId: m.winner_team_id,
+    round: m.round,
+    sets,
+  };
+}
 
 class PointsService {
   // In-memory cache for points table
@@ -571,103 +594,68 @@ class PointsService {
   }
 
   /**
-   * Process elimination matches - OPTIMIZED (uses pre-loaded data)
-   * Two-pass approach for reliability:
-   * 1. First pass: count all wins/losses and track elimination round for each team
-   * 2. Second pass: assign classifications based on elimination round AND total wins
+   * Process elimination matches by delegating to the pure PointsCalculator.
+   * The calculator applies the spec rule: 0 wins → ULT (6), otherwise classId from round.
    */
   static async processEliminationMatchesOptimized(matches, season, tier, level, categoryId, teamResults) {
-    // Track elimination info for each team: { wins, losses, eliminationRound, isFinalWinner }
-    const teamData = new Map();
+    console.log(`  Processing ${matches.length} elimination matches via PointsCalculator`);
+    const calcMatches = matches.map(toCalcMatch);
+    const perTeam = PointsCalculator.processElimination(calcMatches);
 
-    console.log(`  === PASS 1: Processing ${matches.length} matches ===`);
-
-    // PASS 1: Count all wins/losses and track when each team was eliminated
-    for (const match of matches) {
-      const winnerId = match.winner_team_id;
-      const loserId = match.team1_id === winnerId ? match.team2_id : match.team1_id;
-      const round = match.round || '';
-      const roundLower = round.toLowerCase();
-
-      console.log(`    Match: round=${round}, team1=${match.team1_id}, team2=${match.team2_id}, winner=${winnerId}, loser=${loserId}`);
-
-      // Initialize team data
-      if (!teamData.has(winnerId)) {
-        teamData.set(winnerId, { wins: 0, losses: 0, eliminationRound: null, isFinalWinner: false });
-      }
-      if (!teamData.has(loserId)) {
-        teamData.set(loserId, { wins: 0, losses: 0, eliminationRound: null, isFinalWinner: false });
-      }
-
-      // Count wins/losses
-      teamData.get(winnerId).wins++;
-      teamData.get(loserId).losses++;
-
-      // Track when team was eliminated (only first elimination matters)
-      if (!teamData.get(loserId).eliminationRound) {
-        teamData.get(loserId).eliminationRound = round;
-      }
-
-      // Check if this is THE final
-      const isFinal = (roundLower === 'final') ||
-                      (roundLower.includes('final') && !roundLower.includes('semi') && !roundLower.includes('quartas'));
-
-      if (isFinal) {
-        teamData.get(winnerId).isFinalWinner = true;
-        teamData.get(loserId).eliminationRound = 'Final';
-      }
-    }
-
-    console.log(`  Pass 1 complete: ${teamData.size} teams found`);
-    // Debug: show all team states after Pass 1
-    for (const [teamId, data] of teamData) {
-      console.log(`    Team ${teamId}: wins=${data.wins}, losses=${data.losses}, eliminationRound=${data.eliminationRound}, isFinalWinner=${data.isFinalWinner}`);
-    }
-
-    // PASS 2: Assign classifications based on elimination round AND wins
-    for (const [teamId, data] of teamData) {
-      let classId;
-      let result;
-
-      if (data.isFinalWinner) {
-        // Tournament winner
-        classId = 1;
-        result = 'Campeão';
-      } else if (data.eliminationRound) {
-        // Eliminated team: check if they have 0 wins
-        if (data.wins === 0) {
-          classId = 6;
-          result = '1ª Derrota';
-        } else {
-          // Use round-based classification
-          classId = this.getClassificationId('elimination', data.eliminationRound);
-          result = data.eliminationRound;
-        }
-      } else {
-        // Should not happen, but default to ID 6
-        classId = 6;
-        result = 'Desconhecido';
-      }
-
+    for (const [teamId, r] of perTeam) {
       teamResults.set(teamId, {
-        wins: data.wins,
-        losses: data.losses,
+        wins: r.wins,
+        losses: r.losses,
         categoryId,
         level,
-        classificationId: classId,
-        points: await this.getPointsByClassification(season, tier, level, classId),
-        result
+        classificationId: r.classId,
+        points: await this.getPointsByClassification(season, tier, level, r.classId),
+        result: r.result,
       });
-
-      console.log(`  Team ${teamId}: wins=${data.wins}, round=${data.eliminationRound || 'WINNER'}, classId=${classId}`);
+      console.log(`  Team ${teamId}: wins=${r.wins}, classId=${r.classId}, result=${r.result}`);
     }
   }
 
   /**
-   * Process groups with final - OPTIMIZED (uses pre-loaded data)
-   * Handles: 2 groups (direct final), 3 groups (best 2nd to SF), 4 groups (all 1sts to SF)
+   * Process groups+playoff by delegating to PointsCalculator.
+   * Handles: 2 groups (direct final), 3 groups (best 2nd to SF), 4 groups (all 1sts to SF).
+   * The calculator applies the unified classification scheme:
+   *   classId 1=Winner, 2=Finalist, 3=SF, 4=2ºG (only 2nd in 4-team group not advancing),
+   *   5=PEN (other non-advancing 1+ wins), 6=ULT (0 wins or last in 4+ team group).
+   */
+  static async processGroupsWithFinalOptimizedNew(matches, registrations, season, tier, level, categoryId, format, teamResults) {
+    console.log(`  Processing ${matches.length} matches as groups+playoff via PointsCalculator (format=${format})`);
+    const calcMatches = matches.map(toCalcMatch);
+    const perTeam = PointsCalculator.processGroupsWithPlayoff(calcMatches);
+
+    for (const [teamId, r] of perTeam) {
+      const points = await this.getPointsByClassification(season, tier, level, r.classId);
+      teamResults.set(teamId, {
+        wins: r.wins,
+        losses: r.losses,
+        categoryId,
+        level,
+        classificationId: r.classId,
+        points,
+        result: r.result,
+        groupPosition: r.position,
+      });
+      console.log(`  Team ${teamId}: group=${r.groupName}, pos=${r.position}, classId=${r.classId}, pts=${points} (${r.result})`);
+    }
+  }
+
+  /**
+   * Original implementation kept here only for reference/diff. Not called.
+   * @deprecated Use processGroupsWithFinalOptimizedNew (delegates to PointsCalculator).
    */
   static async processGroupsWithFinalOptimized(matches, registrations, season, tier, level, categoryId, format, teamResults) {
+    return this.processGroupsWithFinalOptimizedNew(matches, registrations, season, tier, level, categoryId, format, teamResults);
+  }
+
+  /**
+   * @deprecated kept temporarily; prefer processGroupsWithFinalOptimizedNew.
+   */
+  static async _legacyProcessGroupsWithFinalOptimized(matches, registrations, season, tier, level, categoryId, format, teamResults) {
     // Extract group names from match rounds
     const groupNamesFromMatches = this.extractGroupNamesFromMatches(matches);
     const groupNamesFromRegs = [...new Set(registrations.filter(r => r.group_name).map(r => r.group_name))];
@@ -888,32 +876,27 @@ class PointsService {
   }
 
   /**
-   * Process single group - OPTIMIZED (uses pre-loaded data)
+   * Process single-group format by delegating to PointsCalculator (no playoff).
    */
   static async processSingleGroupOptimized(matches, registrations, season, tier, level, categoryId, format, teamResults) {
-    console.log(`  Processing single group with ${matches.length} matches`);
+    console.log(`  Processing single group via PointsCalculator with ${matches.length} matches`);
+    if (matches.length === 0) return;
 
-    if (matches.length === 0) {
-      console.log(`  WARNING: No matches to process for single group format`);
-      return;
-    }
+    const calcMatches = matches.map(toCalcMatch);
+    const perTeam = PointsCalculator.processSingleGroup(calcMatches);
 
-    const standings = this.calculateGroupStandingsFromMatches(matches);
-    console.log(`  Calculated standings for ${standings.length} teams`);
-
-    for (const team of standings) {
-      const result = this.getResultFromGroupPosition(team.position, standings.length, format);
-      const classId = this.getClassificationId(format, result, standings.length);
-
-      teamResults.set(team.teamId, {
-        wins: team.wins, losses: team.losses, categoryId, level,
-        classificationId: classId,
-        points: await this.getPointsByClassification(season, tier, level, classId),
-        groupPosition: team.position,
-        result: `Grupo ${team.position}º`
+    for (const [teamId, r] of perTeam) {
+      teamResults.set(teamId, {
+        wins: r.wins,
+        losses: r.losses,
+        categoryId,
+        level,
+        classificationId: r.classId,
+        points: await this.getPointsByClassification(season, tier, level, r.classId),
+        groupPosition: r.position,
+        result: r.result,
       });
-
-      console.log(`  Team ${team.teamId}: position=${team.position}, classificationId=${classId}, wins=${team.wins}, losses=${team.losses}`);
+      console.log(`  Team ${teamId}: position=${r.position}, classId=${r.classId}, pts=${r.points}`);
     }
   }
 
